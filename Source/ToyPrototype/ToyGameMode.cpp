@@ -43,6 +43,7 @@ void AToyGameMode::BeginPlay()
     if(!Toy) Toy=GetWorld()->SpawnActor<AToyCharacter>(FVector(-450,-300,90),FRotator::ZeroRotator);
     ACameraActor* Camera=nullptr;
     if(TActorIterator<ACameraActor> It{GetWorld()}; It) { Camera=*It; }
+    if(Camera) { Camera->GetCameraComponent()->SetAspectRatio(9.f/16.f); Camera->GetCameraComponent()->SetConstraintAspectRatio(true); Camera->GetCameraComponent()->SetFieldOfView(32.f); }
     if(Camera) if(APlayerController* PC=GetWorld()->GetFirstPlayerController()) { PC->SetViewTarget(Camera); PC->bShowMouseCursor=true; }
     // Editor commandlets can save a registered Recast actor with no usable tiles.
     // Rebuild after all level collision and navigation bounds have registered.
@@ -73,7 +74,7 @@ void AToyGameMode::Tick(float DeltaSeconds)
     {
         if(ACameraActor* Camera=Cast<ACameraActor>(PC->GetViewTarget()))
         {
-            const FVector Goal=Toy->GetActorLocation()+FVector(650,-900,650);
+            const FVector Goal=Toy->GetActorLocation()+FVector(260,-400,210);
             Camera->SetActorLocation(FMath::VInterpTo(Camera->GetActorLocation(),Goal,DeltaSeconds,3.f));
             Camera->SetActorRotation((Toy->GetActorLocation()+FVector(0,0,15)-Camera->GetActorLocation()).Rotation());
         }
