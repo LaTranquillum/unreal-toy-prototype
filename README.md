@@ -6,7 +6,7 @@ This is a **source-only repository**, not a standalone game download. The origin
 
 ## Build
 
-Install Unreal Engine 5.8 and its macOS development prerequisites. Run `./Scripts/build.sh`; for a custom engine installation use `UNREAL_ENGINE_ROOT="/path/to/UE_5.8" ./Scripts/build.sh`.
+Install Unreal Engine 5.8 and its macOS development prerequisites. Run `zsh Scripts/build.sh`; for a custom engine installation use `UNREAL_ENGINE_ROOT="/path/to/UE_5.8" zsh Scripts/build.sh`.
 
 ## Asset setup
 
@@ -18,6 +18,8 @@ Kitchen and mirror setup scripts are optional. The image-cutout, action-pose and
 
 1 Stop, 2 Wander, 3 Look, 4 Sway, 5 Jump, 6 Bend, 7 Crawl, 8 Sword swing, 0/A Auto. Image poses require the optional artwork. Crawl retains the full-height collision capsule; sword swing is visual and has no damage system. Physical animation does not implement balance recovery.
 
+The compact bottom toolbar can be collapsed with **Tab** or its show/hide label. Keyboard actions remain available while collapsed.
+
 ## Verification
 
 `Scripts/verify.sh` exercises navigation, recovery and collisions in a configured ToyLab. `python3 Scripts/verify_controls.py` checks command dispatch and optional image actions. `Scripts/capture.sh` saves gameplay renders. These scripts currently use the standard macOS engine path; the build entry point accepts an override. Run them only after supplying assets and generating the level.
@@ -25,3 +27,9 @@ Kitchen and mirror setup scripts are optional. The image-cutout, action-pose and
 ## License and provenance
 
 Original project code and documentation are MIT licensed. Unreal Engine and third-party assets are not covered. Development was assisted by OpenAI Codex; maintainers remain responsible for reviewing changes. No independent human review or eligibility certification is implied.
+
+## Compact toolbar validation (2026-09-19)
+
+Validated in the configured local Unreal 5.8.2 project: native build passed; injected Tab collapsed controls; keys 1–8 worked while collapsed; the toggle HUD callback expanded controls; Auto callback passed. A 1280 × 900 gameplay render confirmed the bottom layout. Physical OS clicks and keyboard focus were not simulated. Five checks including two builds, two input runs, and one render run; all passed. Source-only fresh-checkout gameplay remains unverified because third-party assets are intentionally excluded.
+
+On systems where shell script executable bits are absent, invoke them using `zsh Scripts/build.sh`, `zsh Scripts/verify.sh`, and `zsh Scripts/capture.sh`.

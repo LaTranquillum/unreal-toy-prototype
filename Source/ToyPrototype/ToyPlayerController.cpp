@@ -36,15 +36,15 @@ void AToyPlayerController::BeginPlay()
     GetWorldTimerManager().SetTimer(Release,[this,Key](){InputKey(FInputKeyEventArgs::CreateSimulated(Key,IE_Released,0));},.05f,false);
    };
    auto Check=[&](const TCHAR* Name,bool Value){Results->SetBoolField(Name,Value);Passed&=Value;};
-   if(Age>1 && Stage==0){Press(EKeys::One);Stage=1;}
-   if(Age>5 && Stage==1){Check(TEXT("key_1_stop_holds"),CommandsReceived[1]>0 && AI->bManualControl && T->Intent==EToyIntent::Idle && T->GetVelocity().Size2D()<1);Start=T->GetActorLocation();Press(EKeys::Two);Stage=2;}
+   if(Age>1 && Stage==0){Press(EKeys::Tab);Press(EKeys::One);Stage=1;}
+   if(Age>5 && Stage==1){if(AToyHUD* H=Cast<AToyHUD>(GetHUD())) Check(TEXT("tab_collapses_controls"),!H->bControlsExpanded); else Check(TEXT("tab_collapses_controls"),false);Check(TEXT("key_1_stop_holds"),CommandsReceived[1]>0 && AI->bManualControl && T->Intent==EToyIntent::Idle && T->GetVelocity().Size2D()<1);Start=T->GetActorLocation();Press(EKeys::Two);Stage=2;}
    if(Age>9 && Stage==2){Check(TEXT("key_2_wander_moves"),CommandsReceived[2]>0 && AI->bManualControl && AI->ManualIntent==EToyIntent::Wander && FVector::Dist2D(Start,T->GetActorLocation())>80);BeforeLook=T->LookTurnCount;Press(EKeys::Three);Stage=3;}
    if(Age>13 && Stage==3){Check(TEXT("key_3_look_visible"),CommandsReceived[3]>0 && T->Intent==EToyIntent::LookAround && T->LookTurnCount-BeforeLook>=2 && T->GetVelocity().Size2D()<1);Press(EKeys::Four);Stage=4;}
    if(Age>17 && Stage==4){Check(TEXT("key_4_sway_visible"),CommandsReceived[4]>0 && T->Intent==EToyIntent::Gesture && T->MaxCutoutLean>6 && T->GetVelocity().Size2D()<1);Press(EKeys::Five);Stage=5;}
    if(Age>19 && Stage==5){Check(TEXT("key_5_jump_and_land"),CommandsReceived[5]>0 && T->MaxJumpRise>20 && !T->GetCharacterMovement()->IsFalling());Press(EKeys::Six);Stage=6;}
    if(Age>21 && Stage==6){Check(TEXT("key_6_bend_pose"),CommandsReceived[6]>0 && T->bActionArtReady && T->CurrentActionFrame==3);Start=T->GetActorLocation();Press(EKeys::Seven);Stage=7;}
    if(Age>25 && Stage==7){Check(TEXT("key_7_crawl_moves"),CommandsReceived[7]>0 && FVector::Dist2D(Start,T->GetActorLocation())>40 && (T->CurrentActionFrame==1 || T->CurrentActionFrame==4));Press(EKeys::Eight);Stage=8;}
-   if(Age>27 && Stage==8){Check(TEXT("key_8_sword_frames"),CommandsReceived[8]>0 && T->SwordFrameMask==3 && T->GetVelocity().Size2D()<1);if(AToyHUD* H=Cast<AToyHUD>(GetHUD()))H->NotifyHitBoxClick(TEXT("0"));Stage=9;}
+   if(Age>27 && Stage==8){Check(TEXT("key_8_sword_frames"),CommandsReceived[8]>0 && T->SwordFrameMask==3 && T->GetVelocity().Size2D()<1);if(AToyHUD* H=Cast<AToyHUD>(GetHUD())){H->NotifyHitBoxClick(TEXT("ToggleControls"));Check(TEXT("hud_expands_controls"),H->bControlsExpanded);H->NotifyHitBoxClick(TEXT("0"));}Stage=9;}
    if(Age>28 && Stage==9)
    {
     Check(TEXT("hud_auto_handler"),CommandsReceived[0]>0 && !AI->bManualControl);
@@ -61,6 +61,7 @@ void AToyPlayerController::BeginPlay()
 void AToyPlayerController::SetupInputComponent()
 {
  Super::SetupInputComponent();
+ InputComponent->BindKey(EKeys::Tab,IE_Pressed,this,&AToyPlayerController::ToggleControls);
  for (FKey Key:{EKeys::One,EKeys::NumPadOne}) InputComponent->BindKey(Key,IE_Pressed,this,&AToyPlayerController::Idle);
  for (FKey Key:{EKeys::Two,EKeys::NumPadTwo}) InputComponent->BindKey(Key,IE_Pressed,this,&AToyPlayerController::Wander);
  for (FKey Key:{EKeys::Three,EKeys::NumPadThree}) InputComponent->BindKey(Key,IE_Pressed,this,&AToyPlayerController::Look);
@@ -97,3 +98,5 @@ void AToyPlayerController::Hop(){ToyAction(5);}
 void AToyPlayerController::Bend(){ToyAction(6);}
 void AToyPlayerController::Crawl(){ToyAction(7);}
 void AToyPlayerController::Sword(){ToyAction(8);}
+
+void AToyPlayerController::ToggleControls(){if(AToyHUD* H=Cast<AToyHUD>(GetHUD())) H->ToggleControls();}
