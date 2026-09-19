@@ -14,5 +14,5 @@ public:
 private:
  void Idle(); void Wander(); void Look(); void Sway(); void Auto();
  void Hop(); void Bend(); void Crawl(); void Sword();
- void FailedPath(); void Impulse();
+ void FailedPath(); void Impulse(); void ToggleControls();
 };

@@ -215,26 +215,29 @@ void AToyHUD::DrawHUD()
     if(!Mode || !Mode->Toy) return;
     AToyCharacter* T=Mode->Toy;
     AToyAIController* AI=Cast<AToyAIController>(T->GetController());
-    DrawRect(FLinearColor(.025,.032,.055,.9),22,22,505,268);
-    DrawText(TEXT("AUTONOMOUS TOY LAB"),FLinearColor(.8,.7,1),38,34,nullptr,1.5f);
-    DrawText(T->bUseImageCutout?TEXT("Trunks / 2D image cutout"):TEXT("Rigged mannequin placeholder / reference-inspired accents"),FLinearColor::White,38,66);
-    DrawText(FString::Printf(TEXT("Intent: %s   |   speed: %.0f cm/s"),*UEnum::GetValueAsString(T->Intent),T->GetVelocity().Size2D()),FLinearColor::White,38,91);
-    if(AI) DrawText(FString::Printf(TEXT("Arrivals %d    Recoveries %d    Perturbations %d"),AI->Arrivals,AI->PathFailures,T->PerturbationCount),FLinearColor(.55,.85,1),38,116);
-    DrawText(AI && AI->bManualControl?TEXT("MANUAL - stays active until another command"):TEXT("AUTO - choosing actions"),FLinearColor(.8,.8,.8),38,146);
-    const TCHAR* Names[]={TEXT("1 Stop"),TEXT("2 Wander"),TEXT("3 Look"),TEXT("4 Sway"),TEXT("0 Auto"),TEXT("5 Jump"),TEXT("6 Bend"),TEXT("7 Crawl"),TEXT("8 Sword")};
-    for (int32 I=0;I<9;++I)
+    const float Width=FMath::Min(900.f,FMath::Max(240.f,Canvas->ClipX-24.f));
+    const float X=(Canvas->ClipX-Width)*.5f;
+    const float Top=Canvas->ClipY-(bControlsExpanded?78.f:36.f);
+    DrawRect(FLinearColor(.025,.032,.055,.55),X,Top,Width,bControlsExpanded?66.f:24.f);
+    FString Action=UEnum::GetDisplayValueAsText(T->Intent).ToString();
+    DrawText(FString::Printf(TEXT("%s | %s"),AI && AI->bManualControl?TEXT("Manual"):TEXT("Auto"),*Action),FLinearColor::White,X+10,Top+5);
+    DrawText(bControlsExpanded?TEXT("Tab: hide controls"):TEXT("Tab: show controls"),FLinearColor::White,X+Width-135,Top+5);
+    AddHitBox(FVector2D(X+Width-140,Top),FVector2D(140,24),TEXT("ToggleControls"),true);
+    if(!bControlsExpanded) return;
+    const TCHAR* Names[]={TEXT("1 Stop"),TEXT("2 Wander"),TEXT("3 Look"),TEXT("4 Sway"),TEXT("5 Jump"),TEXT("6 Bend"),TEXT("7 Crawl"),TEXT("8 Sword"),TEXT("0 Auto")};
+    const float Cell=(Width-16)/9;
+    for(int32 I=0;I<9;++I)
     {
-        const float X=38+(I%5)*95;
-        const float Y=174+(I/5)*40;
-        DrawRect(FLinearColor(.16,.20,.27,1),X,Y,88,30);
-        DrawText(Names[I],FLinearColor::White,X+7,Y+8);
-        AddHitBox(FVector2D(X,Y),FVector2D(88,30),FName(*FString::FromInt(I==4?0:(I>4?I:I+1))),true);
+        const float Left=X+8+I*Cell;
+        DrawRect(FLinearColor(.16,.20,.27,.7),Left,Top+30,Cell-4,28);
+        DrawText(Names[I],FLinearColor::White,Left+4,Top+37,nullptr,FMath::Min(1.f,Cell/80.f));
+        AddHitBox(FVector2D(Left,Top+30),FVector2D(Cell-4,28),FName(*FString::FromInt(I==8?0:I+1)),true);
     }
-    DrawText(TEXT("Click a button, or click the game view then press 1-8 / 0."),FLinearColor(.8,.8,.8),38,258);
 }
 void AToyHUD::NotifyHitBoxClick(FName BoxName)
 {
     Super::NotifyHitBoxClick(BoxName);
+    if(BoxName==TEXT("ToggleControls")) { ToggleControls(); return; }
     if (AToyPlayerController* PC=Cast<AToyPlayerController>(GetOwningPlayerController()))
         PC->ToyAction(FCString::Atoi(*BoxName.ToString()));
 }

@@ -8,6 +8,8 @@ class TOYPROTOTYPE_API AToyHUD : public AHUD
 {
     GENERATED_BODY()
 public: virtual void DrawHUD() override;
+ bool bControlsExpanded = true;
+ void ToggleControls() { bControlsExpanded = !bControlsExpanded; }
  virtual void NotifyHitBoxClick(FName BoxName) override;
 };
 UCLASS()
