@@ -1,0 +1,22 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "5.8",
+  "Description": "Autonomous toy figure prototype; labeled mannequin placeholder",
+  "Modules": [
+    {
+      "Name": "ToyPrototype",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ],
+  "Plugins": [
+    {
+      "Name": "PythonScriptPlugin",
+      "Enabled": true
+    },
+    {
+      "Name": "EditorScriptingUtilities",
+      "Enabled": true
+    }
+  ]
+}
