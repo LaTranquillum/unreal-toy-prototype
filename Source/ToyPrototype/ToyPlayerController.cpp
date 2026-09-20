@@ -1,4 +1,6 @@
 #include "ToyPlayerController.h"
+#include "ToyArena.h"
+#include "Camera/PlayerCameraManager.h"
 #include "ToyGameMode.h"
 #include "ToyCharacter.h"
 #include "ToyAIController.h"
@@ -61,6 +63,10 @@ void AToyPlayerController::BeginPlay()
 void AToyPlayerController::SetupInputComponent()
 {
  Super::SetupInputComponent();
+ InputComponent->BindKey(EKeys::LeftMouseButton,IE_Pressed,this,&AToyPlayerController::CombatAttack);
+ InputComponent->BindKey(EKeys::LeftShift,IE_Pressed,this,&AToyPlayerController::CombatDodge);
+ InputComponent->BindKey(EKeys::SpaceBar,IE_Pressed,this,&AToyPlayerController::CombatJump);
+ InputComponent->BindKey(EKeys::R,IE_Pressed,this,&AToyPlayerController::CombatRestart);
  InputComponent->BindKey(EKeys::Tab,IE_Pressed,this,&AToyPlayerController::ToggleControls);
  for (FKey Key:{EKeys::One,EKeys::NumPadOne}) InputComponent->BindKey(Key,IE_Pressed,this,&AToyPlayerController::Idle);
  for (FKey Key:{EKeys::Two,EKeys::NumPadTwo}) InputComponent->BindKey(Key,IE_Pressed,this,&AToyPlayerController::Wander);
@@ -78,6 +84,7 @@ void AToyPlayerController::ToyAction(int32 Action)
 {
  AToyGameMode* Mode=GetWorld()->GetAuthGameMode<AToyGameMode>();
  if (!Mode || !Mode->Toy || Action<0 || Action>8) return;
+ if(Mode->Arena){if(Action==8)Mode->Arena->Attack();else if(Action==5)CombatJump();return;}
  if (AToyAIController* AI=Cast<AToyAIController>(Mode->Toy->GetController()))
  {
   ++CommandsReceived[Action];
@@ -100,3 +107,17 @@ void AToyPlayerController::Crawl(){ToyAction(7);}
 void AToyPlayerController::Sword(){ToyAction(8);}
 
 void AToyPlayerController::ToggleControls(){if(AToyHUD* H=Cast<AToyHUD>(GetHUD())) H->ToggleControls();}
+
+void AToyPlayerController::PlayerTick(float Dt)
+{
+ Super::PlayerTick(Dt);
+ auto* GM=GetWorld()->GetAuthGameMode<AToyGameMode>();
+ if(!GM || !GM->Arena || FParse::Param(FCommandLine::Get(),TEXT("ArenaVerify")))return;
+ FVector Forward=PlayerCameraManager->GetCameraRotation().Vector().GetSafeNormal2D();
+ FVector Right=FVector::CrossProduct(FVector::UpVector,Forward);
+ GM->Arena->MoveDirection=(Forward*(float(IsInputKeyDown(EKeys::W))-float(IsInputKeyDown(EKeys::S)))+Right*(float(IsInputKeyDown(EKeys::D))-float(IsInputKeyDown(EKeys::A)))).GetSafeNormal();
+}
+void AToyPlayerController::CombatAttack(){auto* G=GetWorld()->GetAuthGameMode<AToyGameMode>();if(G && G->Arena)G->Arena->Attack();}
+void AToyPlayerController::CombatDodge(){auto* G=GetWorld()->GetAuthGameMode<AToyGameMode>();if(G && G->Arena)G->Arena->Dodge();}
+void AToyPlayerController::CombatJump(){auto* G=GetWorld()->GetAuthGameMode<AToyGameMode>();if(G && G->Arena && G->Arena->IsPlaying()){G->Toy->Jump();FTimerHandle Release;GetWorldTimerManager().SetTimer(Release,[T=TWeakObjectPtr<AToyCharacter>(G->Toy)](){if(T.IsValid())T->StopJumping();},.1f,false);}}
+void AToyPlayerController::CombatRestart(){auto* G=GetWorld()->GetAuthGameMode<AToyGameMode>();if(G && G->Arena)G->Arena->Restart();}
