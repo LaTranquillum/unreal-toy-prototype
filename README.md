@@ -14,7 +14,7 @@ Before running `Scripts/setup_scene.py` through Unreal's Python commandlet, supp
 
 Kitchen and mirror setup scripts are optional. The image-cutout, action-pose and manga-floor import scripts require separately supplied artwork at their documented Art/Reference paths. Those images are not included or licensed by this repository. A fresh source checkout has not been validated as a complete game installation.
 
-## Controls
+## Autonomous demo controls (`-ToyDemo`)
 
 1 Stop, 2 Wander, 3 Look, 4 Sway, 5 Jump, 6 Bend, 7 Crawl, 8 Sword swing, 0/A Auto. Image poses require the optional artwork. Crawl retains the full-height collision capsule; sword swing is visual and has no damage system. Physical animation does not implement balance recovery.
 
@@ -34,9 +34,9 @@ Validated in the configured local Unreal 5.8.2 project: native build passed; inj
 
 On systems where shell script executable bits are absent, invoke them using `zsh Scripts/build.sh`, `zsh Scripts/verify.sh`, and `zsh Scripts/capture.sh`.
 
-## Portrait presentation
+## Portrait presentation (autonomous demo and captures)
 
-The follow camera uses a closer 9:16 composition. In a landscape Play window,
+The demo follow camera uses a closer 9:16 composition. In a landscape Play window,
 Unreal adds side bars; the capture script requests a 720 × 1280 portrait window.
 
 After generating ToyLab, optionally run `Scripts/setup_kitchen.py`, then apply
@@ -67,3 +67,9 @@ An isolated minimal Unreal scene also verified missing-map errors, plain-materia
 fallback without artwork, non-colliding panels, portrait camera settings, and
 repeat application without duplicate actors. That check reused the locally built
 module; it was not a fresh-checkout build or a full gameplay test.
+
+## Kitchen combat slice
+
+ToyLab now starts a 60-second single-player combat round: WASD movement, mouse aim, click/8 sword attack, Shift dodge, Space jump, and R restart. A shooting drone, health pickup, score, and adaptive camera provide a small arena loop. See [controls, setup context, and validation](Docs/COMBAT_SLICE.md). Run `zsh Scripts/play_arena.sh -ToyDemo` for the original autonomous demo.
+
+This remains a source-only repository. Generate ToyLab and supply the previously documented assets first; the local Trunks artwork and generated maps are not included. The combat drone uses engine primitive shapes.
