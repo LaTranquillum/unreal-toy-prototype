@@ -1,4 +1,5 @@
 #include "ToyGameMode.h"
+#include "ToyArena.h"
 #include "ToyPlayerController.h"
 #include "InputKeyEventArgs.h"
 #include "Engine/World.h"
@@ -57,6 +58,8 @@ void AToyGameMode::BeginPlay()
     });
     bCapture=FParse::Param(FCommandLine::Get(),TEXT("ToyCapture"));
     bVerify=FParse::Param(FCommandLine::Get(),TEXT("ToyVerify"));
+    if(!bCapture && !bVerify && !FParse::Param(FCommandLine::Get(),TEXT("ToyControlVerify")) && !FParse::Param(FCommandLine::Get(),TEXT("ToyDemo")))
+        Arena=GetWorld()->SpawnActor<AToyArena>();
     if(bCapture && Toy) { Toy->IdleWeight=1; Toy->WanderWeight=Toy->LookWeight=Toy->GestureWeight=0; }
     if(bVerify && Toy)
     {
@@ -67,7 +70,7 @@ void AToyGameMode::BeginPlay()
 void AToyGameMode::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
-    if(!Toy) return;
+    if(!Toy || Arena) return;
     AToyAIController* AI=Cast<AToyAIController>(Toy->GetController());
     if(!AI) return;
     if(APlayerController* PC=GetWorld()->GetFirstPlayerController())
@@ -214,6 +217,7 @@ void AToyHUD::DrawHUD()
     if(!Canvas) return;
     AToyGameMode* Mode=Cast<AToyGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
     if(!Mode || !Mode->Toy) return;
+    if(Mode->Arena){Mode->Arena->Draw(this,Canvas);return;}
     AToyCharacter* T=Mode->Toy;
     AToyAIController* AI=Cast<AToyAIController>(T->GetController());
     const float Width=FMath::Min(900.f,FMath::Max(240.f,Canvas->ClipX-24.f));

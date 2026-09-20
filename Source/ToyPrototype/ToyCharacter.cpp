@@ -1,4 +1,6 @@
 #include "ToyCharacter.h"
+#include "ToyArena.h"
+#include "ToyGameMode.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/World.h"
 #include "ToyAIController.h"
@@ -84,7 +86,8 @@ void AToyCharacter::BeginPlay()
     Super::BeginPlay();
     MotionRandom.Initialize(BehaviorSeed ^ 0x7c17);
     GetMesh()->SetCollisionResponseToAllChannels(ECR_Ignore);
-    GetCharacterMovement()->MaxWalkSpeed=FMath::Clamp(WalkSpeed,60.f,240.f);
+    const auto* Game=GetWorld()->GetAuthGameMode<AToyGameMode>();
+    GetCharacterMovement()->MaxWalkSpeed=(Game && Game->Arena)?420.f:FMath::Clamp(WalkSpeed,60.f,240.f);
     GetMesh()->SetMaterial(0,LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/Toy/Materials/M_Blue.M_Blue")));
     GetMesh()->SetMaterial(1,LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/Toy/Materials/M_Dark.M_Dark")));
     AccentParts[0]->SetMaterial(0,LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/Toy/Materials/M_Purple.M_Purple")));
@@ -216,6 +219,9 @@ void AToyCharacter::Tick(float DeltaSeconds)
                     if (LookRight!=bCutoutFacesRight) ++LookTurnCount;
                     bCutoutFacesRight=LookRight;
                 }
+                AToyGameMode* GM=GetWorld()->GetAuthGameMode<AToyGameMode>();
+                if(GM && GM->Arena && Intent==EToyIntent::SwordSwing)
+                    bCutoutFacesRight=FVector::DotProduct(GM->Arena->Aim,Right)>0;
                 const float Moving=FMath::Clamp(static_cast<float>(GetVelocity().Size2D())/150.f,0.f,1.f);
                 const float T=GetWorld()->GetTimeSeconds();
                 const float Bob=2.5f*Moving*FMath::Abs(FMath::Sin(T*7.f));
@@ -223,7 +229,7 @@ void AToyCharacter::Tick(float DeltaSeconds)
                 int32 Frame=-1;
                 if(Intent==EToyIntent::Bend) Frame=IntentAge()<.35f?0:3;
                 if(Intent==EToyIntent::Crawl) Frame=(FMath::FloorToInt(IntentAge()*3.f)%2)==0?1:4;
-                if(Intent==EToyIntent::SwordSwing) {Frame=(FMath::FloorToInt(IntentAge()*3.f)%2)==0?2:5;SwordFrameMask|=Frame==2?1:2;}
+                if(Intent==EToyIntent::SwordSwing) {Frame=(GM && GM->Arena)?(IntentAge()<.12f?2:5):((FMath::FloorToInt(IntentAge()*3.f)%2)==0?2:5);SwordFrameMask|=Frame==2?1:2;}
                 if(!bActionArtReady) Frame=-1;
                 if(Frame!=CurrentActionFrame)
                 {

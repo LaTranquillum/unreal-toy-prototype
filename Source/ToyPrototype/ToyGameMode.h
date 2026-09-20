@@ -21,6 +21,7 @@ public:
     virtual void BeginPlay() override;
     virtual void Tick(float DeltaSeconds) override;
     UPROPERTY() TObjectPtr<class AToyCharacter> Toy;
+    UPROPERTY() TObjectPtr<class AToyArena> Arena;
 private:
     bool bVerify=false;
     bool bCapture=false;

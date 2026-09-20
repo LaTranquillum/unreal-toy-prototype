@@ -9,6 +9,8 @@ class TOYPROTOTYPE_API AToyPlayerController : public APlayerController
 public:
  virtual void BeginPlay() override;
  virtual void SetupInputComponent() override;
+ virtual void PlayerTick(float DeltaSeconds) override;
+ void CombatAttack(); void CombatDodge(); void CombatJump(); void CombatRestart();
  UFUNCTION(Exec) void ToyAction(int32 Action);
  int32 CommandsReceived[9]={0,0,0,0,0,0,0,0,0};
 private:
