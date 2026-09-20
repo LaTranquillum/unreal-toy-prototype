@@ -33,3 +33,37 @@ Original project code and documentation are MIT licensed. Unreal Engine and thir
 Validated in the configured local Unreal 5.8.2 project: native build passed; injected Tab collapsed controls; keys 1–8 worked while collapsed; the toggle HUD callback expanded controls; Auto callback passed. A 1280 × 900 gameplay render confirmed the bottom layout. Physical OS clicks and keyboard focus were not simulated. Five checks including two builds, two input runs, and one render run; all passed. Source-only fresh-checkout gameplay remains unverified because third-party assets are intentionally excluded.
 
 On systems where shell script executable bits are absent, invoke them using `zsh Scripts/build.sh`, `zsh Scripts/verify.sh`, and `zsh Scripts/capture.sh`.
+
+## Portrait presentation
+
+The follow camera uses a closer 9:16 composition. In a landscape Play window,
+Unreal adds side bars; the capture script requests a 720 × 1280 portrait window.
+
+After generating ToyLab, optionally run `Scripts/setup_kitchen.py`, then apply
+`Scripts/polish_video.py` using Unreal's Python commandlet. For example on macOS:
+
+```sh
+"/Users/Shared/Epic Games/UE_5.8/Engine/Binaries/Mac/UnrealEditor-Cmd" \
+  "$PWD/ToyPrototype.uproject" -run=pythonscript \
+  -script="$PWD/Scripts/polish_video.py" -unattended -nosound -nullrhi
+zsh Scripts/capture.sh
+```
+
+Back up the level before applying the script. It saves ToyLab, replaces the existing
+manga-floor actors with three non-colliding inset panels, gives the arena floor a
+warm-grey material, and adjusts the directional lights plus two broad fill lights.
+Running it again replaces its panels and fill lights rather than duplicating them.
+
+Manga materials are optional: `/Game/Toy/MangaRug/M_Panel_1`, `M_Panel_4`, and
+`M_Panel_5`. Missing materials produce labeled plain insets and warnings. No image
+imports are performed. A missing ToyLab produces an actionable error before edits.
+Artwork, generated maps, and gameplay screenshots remain excluded from this repo.
+
+The configured Unreal 5.8.2 project built successfully and rendered the existing
+action sequence at 720 × 1280. Framing, floor layout, and lighting were visually
+inspected; this does not validate a complete game installation from a fresh checkout.
+
+An isolated minimal Unreal scene also verified missing-map errors, plain-material
+fallback without artwork, non-colliding panels, portrait camera settings, and
+repeat application without duplicate actors. That check reused the locally built
+module; it was not a fresh-checkout build or a full gameplay test.
