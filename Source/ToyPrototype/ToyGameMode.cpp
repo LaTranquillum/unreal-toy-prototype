@@ -1,5 +1,7 @@
 #include "ToyGameMode.h"
 #include "ToyArena.h"
+#include "Components/TextRenderComponent.h"
+#include "Misc/App.h"
 #include "ToyPlayerController.h"
 #include "InputKeyEventArgs.h"
 #include "Engine/World.h"
@@ -56,10 +58,25 @@ void AToyGameMode::BeginPlay()
             UE_LOG(LogTemp,Display,TEXT("TOY requested initial navigation build"));
         }
     });
+    bMontage=FParse::Param(FCommandLine::Get(),TEXT("ToyMontage"));
     bCapture=FParse::Param(FCommandLine::Get(),TEXT("ToyCapture"));
     bVerify=FParse::Param(FCommandLine::Get(),TEXT("ToyVerify"));
-    if(!bCapture && !bVerify && !FParse::Param(FCommandLine::Get(),TEXT("ToyControlVerify")) && !FParse::Param(FCommandLine::Get(),TEXT("ToyDemo")))
+    if(!bMontage && !bCapture && !bVerify && !FParse::Param(FCommandLine::Get(),TEXT("ToyControlVerify")) && !FParse::Param(FCommandLine::Get(),TEXT("ToyDemo")))
         Arena=GetWorld()->SpawnActor<AToyArena>();
+    if(bMontage && Toy)
+    {
+        MontageDirectory=FPaths::ProjectSavedDir()/TEXT("VideoFrames");
+        FParse::Value(FCommandLine::Get(),TEXT("MontageOutput="),MontageDirectory);
+        IFileManager::Get().MakeDirectory(*MontageDirectory,true);
+        FApp::SetUseFixedTimeStep(true); FApp::SetFixedDeltaTime(1.0/30.0);
+        Toy->PlaceholderLabel->SetHiddenInGame(true);
+        if(auto* PC=GetWorld()->GetFirstPlayerController())
+        {
+            PC->bShowMouseCursor=false;
+            if(auto* HUD=PC->GetHUD()) HUD->bShowHUD=false;
+        }
+        if(auto* AI=Cast<AToyAIController>(Toy->GetController())) AI->SetManualIntent(EToyIntent::Idle);
+    }
     if(bCapture && Toy) { Toy->IdleWeight=1; Toy->WanderWeight=Toy->LookWeight=Toy->GestureWeight=0; }
     if(bVerify && Toy)
     {
@@ -84,8 +101,23 @@ void AToyGameMode::Tick(float DeltaSeconds)
     }
 #if WITH_EDITOR
     // Do not capture grey fallback materials while first-time shaders compile.
-    if(bCapture && GShaderCompilingManager && GShaderCompilingManager->IsCompiling()) return;
+    if((bCapture || bMontage) && GShaderCompilingManager && GShaderCompilingManager->IsCompiling()) return;
 #endif
+    if(bMontage)
+    {
+        // 30 rendered frames per second: exactly 450 frames = 15 seconds.
+        // Warm up the follow camera for two seconds before recording.
+        if(MontageFrame<0){++MontageFrame;return;}
+        if(MontageFrame>=450){FPlatformMisc::RequestExit(false);return;}
+        const int32 Starts[]={0,90,120,180,210,240,330,420};
+        const EToyIntent Actions[]={EToyIntent::Wander,EToyIntent::LookAround,EToyIntent::Gesture,EToyIntent::Hop,EToyIntent::Bend,EToyIntent::Crawl,EToyIntent::SwordSwing,EToyIntent::Idle};
+        int32 Action=0;
+        for(int32 I=1;I<8;++I)if(MontageFrame>=Starts[I])Action=I;
+        if(Action!=MontageAction){AI->SetManualIntent(Actions[Action]);MontageAction=Action;}
+        FScreenshotRequest::RequestScreenshot(MontageDirectory/FString::Printf(TEXT("frame_%04d.png"),MontageFrame),false,false);
+        ++MontageFrame;
+        return;
+    }
     Age+=DeltaSeconds;
     if(bCapture)
     {

@@ -5,6 +5,10 @@
 #include "Engine/World.h"
 #include "ToyAIController.h"
 #include "ToyAnimInstance.h"
+#include "ToyBlockoutAnim.h"
+#include "Animation/AnimSequence.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -84,6 +88,7 @@ AToyCharacter::AToyCharacter()
 void AToyCharacter::BeginPlay()
 {
     Super::BeginPlay();
+    if(bRiggedBlockoutReady) return;
     MotionRandom.Initialize(BehaviorSeed ^ 0x7c17);
     GetMesh()->SetCollisionResponseToAllChannels(ECR_Ignore);
     const auto* Game=GetWorld()->GetAuthGameMode<AToyGameMode>();
@@ -254,6 +259,7 @@ void AToyCharacter::Tick(float DeltaSeconds)
             if (Body && Body->IsInstanceSimulatingPhysics()) ++ForbiddenSimulatedBodies;
         return;
     }
+    if(bRiggedBlockoutReady) return;
     for (FName Name:SimulatedBodies)
     {
         const FQuat Rotation=GetMesh()->GetBoneQuaternion(Name,EBoneSpaces::ComponentSpace);
@@ -311,4 +317,34 @@ void AToyCharacter::EndPlay(const EEndPlayReason::Type Reason)
     GetWorldTimerManager().ClearTimer(PerturbTimer);
     GetWorldTimerManager().ClearTimer(PhysicsInitTimer);
     Super::EndPlay(Reason);
+}
+
+bool AToyCharacter::EnableRiggedBlockout()
+{
+ if(bRiggedBlockoutReady)return true;
+ if(FParse::Param(FCommandLine::Get(),TEXT("Toy2D")))return false;
+ auto* Mesh=LoadObject<USkeletalMesh>(nullptr,TEXT("/Game/Toy/Blockout/SK_ToyBlockout.SK_ToyBlockout"));
+ const TCHAR* Names[]={TEXT("Idle"),TEXT("Run"),TEXT("Dodge"),TEXT("Slash")};
+ for(const TCHAR* Name:Names)
+ {
+  auto* Clip=LoadObject<UAnimSequence>(nullptr,*FString::Printf(TEXT("/Game/Toy/Blockout/A_Toy%s.A_Toy%s"),Name,Name));
+  if(!Clip || !Mesh || Clip->GetSkeleton()!=Mesh->GetSkeleton())
+  {UE_LOG(LogTemp,Warning,TEXT("Rigged toy assets missing/incompatible; retaining original appearance"));return false;}
+ }
+ bRiggedBlockoutReady=true;bUseImageCutout=false;bEnableSecondaryPhysics=false;bPhysicsReady=false;
+ GetWorldTimerManager().ClearTimer(PhysicsInitTimer);GetWorldTimerManager().ClearTimer(PerturbTimer);
+ GetMesh()->SetAllBodiesSimulatePhysics(false);ImageCutout->SetVisibility(false);ImageCutout->SetHiddenInGame(true);
+ for(auto& Part:AccentParts){Part->SetVisibility(false);Part->SetHiddenInGame(true);}
+ GetMesh()->SetSkeletalMeshAsset(Mesh);GetMesh()->EmptyOverrideMaterials();
+ GetMesh()->SetRelativeLocationAndRotation(FVector(0,0,-88),FRotator(0,-90,0));
+ GetMesh()->SetRelativeScale3D(FVector(1));GetMesh()->SetVisibility(true);GetMesh()->SetHiddenInGame(false);
+ GetMesh()->SetComponentTickEnabled(true);GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+ GetMesh()->SetCastShadow(true);GetMesh()->SetAnimInstanceClass(UToyBlockoutAnim::StaticClass());
+ PlaceholderLabel->SetHiddenInGame(true);
+ UE_LOG(LogTemp,Display,TEXT("TOY rigged blockout active; %d bones, capsule-authoritative, physics disabled"),GetMesh()->GetNumBones());
+ return true;
+}
+void AToyCharacter::StartRigAction(int32 Action)
+{
+ RigAction=Action;RigActionStarted=GetWorld()->GetTimeSeconds();
 }
