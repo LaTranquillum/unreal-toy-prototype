@@ -31,11 +31,18 @@ private:
  float Clock=0, Swing=-1, DodgeUntil=0, DodgeReady=0, InvulnerableUntil=0;
  float ShootAt=2, RespawnAt=0, PickupAt=0, HitFlash=0, Shake=0;
  FVector LockedShot=FVector::ZeroVector;
+ bool bShowcase=false;
+ int32 ShowcaseFrame=-60;
+ FString ShowcaseDirectory;
+ void TickShowcase(float DeltaSeconds);
  bool bTelegraph=false, bHitThisSwing=false, bVerify=false;
  int32 VerifyStage=0, Hits=0, Shots=0, DamageEvents=0, Dodges=0, Collected=0;
  TMap<FString,bool> Checks;
  FVector TestStart;
  float TestAge=0;
+ int32 RigCaptureMask=0;
+ float RigRunMotion=0,RigSlashMotion=0,RigDodgeMotion=0;
+ FVector RigPreviousFoot=FVector::ZeroVector,RigPreviousHand=FVector::ZeroVector,RigPreviousHead=FVector::ZeroVector;
  class AStaticMeshActor* Shape(FVector Position,FVector Scale,const TCHAR* Mesh,const TCHAR* Material,bool Collision=false);
  void SpawnDrone();
  void UpdateDrone(float DeltaSeconds);

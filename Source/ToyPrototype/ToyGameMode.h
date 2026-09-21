@@ -25,6 +25,10 @@ public:
 private:
     bool bVerify=false;
     bool bCapture=false;
+    bool bMontage=false;
+    int32 MontageFrame=-60;
+    int32 MontageAction=-1;
+    FString MontageDirectory;
     int32 CapturePhase=0;
     bool bFinished=false;
     int32 Phase=0;

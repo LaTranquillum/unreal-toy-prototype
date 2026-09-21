@@ -16,6 +16,11 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Toy|Appearance", meta=(ClampMin="80",ClampMax="240")) float CutoutHeight = 180;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Toy|Components") TObjectPtr<class UStaticMeshComponent> ImageCutout;
     bool bCutoutReady = false;
+    bool bRiggedBlockoutReady = false;
+    int32 RigAction=0;
+    float RigActionStarted=-100;
+    bool EnableRiggedBlockout();
+    void StartRigAction(int32 Action);
     int32 CutoutMovingSamples = 0;
     float MaxCutoutBob = 0;
     float MaxCutoutLean = 0;

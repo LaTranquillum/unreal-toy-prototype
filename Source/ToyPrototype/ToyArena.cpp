@@ -6,6 +6,10 @@
 #include "Camera/CameraComponent.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#if WITH_EDITOR
+#include "ShaderCompiler.h"
+#endif
 #include "Components/AudioComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/TextRenderComponent.h"
@@ -21,6 +25,8 @@
 #include "Misc/Parse.h"
 #include "Misc/Paths.h"
 #include "Misc/FileHelper.h"
+#include "Misc/App.h"
+#include "HAL/FileManager.h"
 #include "Serialization/JsonSerializer.h"
 
 AToyArena::AToyArena(){PrimaryActorTick.bCanEverTick=true;}
@@ -41,6 +47,7 @@ void AToyArena::BeginPlay()
  auto* PC=GetWorld()->GetFirstPlayerController();
  if(auto* Old=Toy->GetController()){Old->UnPossess();Old->Destroy();}
  PC->Possess(Toy); PC->bAutoManageActiveCameraTarget=false;
+ Toy->EnableRiggedBlockout();
  Toy->PlaceholderLabel->SetHiddenInGame(true);
  Toy->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility,ECR_Block);
  auto* Move=Toy->GetCharacterMovement(); Move->MaxWalkSpeed=420; Move->MaxAcceleration=3600;
@@ -55,10 +62,25 @@ void AToyArena::BeginPlay()
  Pickup=Shape(FVector(450,-550,35),FVector(.5,.5,.5),TEXT("/Engine/BasicShapes/Sphere.Sphere"),TEXT("/Game/Toy/Materials/M_Gold.M_Gold"));
  bVerify=FParse::Param(FCommandLine::Get(),TEXT("ArenaVerify"));
  Restart();
+ bShowcase=FParse::Param(FCommandLine::Get(),TEXT("ToyShowcase"));
+ if(bShowcase)
+ {
+  if(!Toy->bRiggedBlockoutReady){UE_LOG(LogTemp,Error,TEXT("Showcase requires the 3D rig"));FPlatformMisc::RequestExit(false);return;}
+  ShowcaseDirectory=FPaths::ProjectSavedDir()/TEXT("ShowcaseFrames");
+  FParse::Value(FCommandLine::Get(),TEXT("ShowcaseOutput="),ShowcaseDirectory);
+  IFileManager::Get().MakeDirectory(*ShowcaseDirectory,true);
+  FApp::SetUseFixedTimeStep(true);FApp::SetFixedDeltaTime(1.0/30.0);
+  Move->MaxWalkSpeed=180;Move->bOrientRotationToMovement=false;
+  Toy->SetActorRotation(FRotator(0,-70,0));PC->bShowMouseCursor=false;
+  Pickup->SetActorHiddenInGame(true);
+  if(Drone){TArray<AActor*> Children;Drone->GetAttachedActors(Children);for(auto* C:Children)C->Destroy();Drone->Destroy();Drone=nullptr;}
+  Camera->GetCameraComponent()->SetAspectRatio(9.f/16.f);Camera->GetCameraComponent()->SetFieldOfView(35);
+ }
 }
 void AToyArena::Restart()
 {
  Health=100;Remaining=60;Score=0;Swing=-1;Clock=0;ShootAt=2;RespawnAt=0;PickupAt=0;
+ Toy->RigAction=0;
  DodgeUntil=DodgeReady=InvulnerableUntil=0;bTelegraph=false;HitFlash=Shake=0;
  for(auto& B:Bolts)if(B.Actor.IsValid())B.Actor->Destroy();Bolts.Empty();
  Toy->SetActorLocation(FVector(-350,-350,90));Toy->GetCharacterMovement()->StopMovementImmediately();Toy->SetIntent(EToyIntent::Idle);
@@ -89,13 +111,14 @@ void AToyArena::Tone(float Frequency,float Duration,float Volume)
 void AToyArena::Attack()
 {
  if(!IsPlaying() || Swing>=0)return;
- Swing=0;bHitThisSwing=false;Toy->SetIntent(EToyIntent::SwordSwing);Tone(260,.10f,.35f);
+ Swing=0;bHitThisSwing=false;Toy->StartRigAction(1);Toy->SetIntent(EToyIntent::SwordSwing);Tone(260,.10f,.35f);
 }
 void AToyArena::Dodge()
 {
  if(!IsPlaying() || Clock<DodgeReady || Toy->GetCharacterMovement()->IsFalling())return;
  FVector Dir=MoveDirection.IsNearlyZero()?Aim:MoveDirection;
  Toy->LaunchCharacter(Dir.GetSafeNormal2D()*1050+FVector(0,0,65),true,true);
+ Toy->StartRigAction(2);
  DodgeUntil=Clock+.22f;DodgeReady=Clock+1;InvulnerableUntil=Clock+.18f;++Dodges;Tone(150,.12f,.3f);
 }
 void AToyArena::DamagePlayer(float Amount)
@@ -153,6 +176,10 @@ void AToyArena::UpdateBolts(float Dt)
 void AToyArena::Tick(float Dt)
 {
  Super::Tick(Dt);if(!Toy)return;
+#if WITH_EDITOR
+ if((bVerify || bShowcase) && GShaderCompilingManager && GShaderCompilingManager->IsCompiling())return;
+#endif
+ if(bShowcase){TickShowcase(Dt);return;}
  Clock+=Dt;HitFlash=FMath::Max(0.f,HitFlash-Dt);Shake=FMath::Max(0.f,Shake-Dt);
  auto* PC=GetWorld()->GetFirstPlayerController();
  if(IsPlaying())
@@ -163,6 +190,12 @@ void AToyArena::Tick(float Dt)
   {float T=(Toy->GetActorLocation().Z-Ray.Z)/Direction.Z;if(T>0)Aim=(Ray+Direction*T-Toy->GetActorLocation()).GetSafeNormal2D();}
   if(!MoveDirection.IsNearlyZero() && Clock>=DodgeUntil)Toy->AddMovementInput(MoveDirection,1);
   if(Clock<DodgeUntil)DrawDebugCircle(GetWorld(),Toy->GetActorLocation()-FVector(0,0,80),48,24,FColor::Cyan,false,-1,0,3,FVector(1,0,0),FVector(0,1,0),false);
+  if(Toy->bRiggedBlockoutReady)
+  {
+   Toy->GetCharacterMovement()->bOrientRotationToMovement=false;
+   FVector Facing=(Swing>=0 || MoveDirection.IsNearlyZero())?Aim:MoveDirection;
+   Toy->SetActorRotation(FMath::RInterpTo(Toy->GetActorRotation(),Facing.Rotation(),Dt,Swing>=0?24.f:14.f));
+  }
   UpdateDrone(Dt);UpdateBolts(Dt);
   if(Swing>=0)
   {
@@ -210,6 +243,7 @@ void AToyArena::Tick(float Dt)
 }
 void AToyArena::Draw(AToyHUD* H,UCanvas* C)
 {
+ if(bShowcase)return;
  float W=C->ClipX;
  H->DrawRect(FLinearColor(.02,.025,.04,.8),18,18,250,66);
  H->DrawText(FString::Printf(TEXT("HEALTH %03d    SCORE %03d"),int(Health),Score),FLinearColor::White,30,26,nullptr,1.2);
@@ -240,6 +274,29 @@ void AToyArena::Verify(float Dt)
 {
  auto* PC=Cast<AToyPlayerController>(GetWorld()->GetFirstPlayerController());
  TestAge+=Dt;
+ if(Toy->bRiggedBlockoutReady)
+ {
+  auto* M=Toy->GetMesh();
+  FVector Foot=M->GetBoneTransform(M->GetBoneIndex(TEXT("foot_l")),FTransform::Identity).GetLocation();
+  FVector Hand=M->GetBoneTransform(M->GetBoneIndex(TEXT("hand_r")),FTransform::Identity).GetLocation();
+  FVector Head=M->GetBoneTransform(M->GetBoneIndex(TEXT("head")),FTransform::Identity).GetLocation();
+  if(TestAge>Dt*2)
+  {
+   if(VerifyStage==1)RigRunMotion=FMath::Max(RigRunMotion,float(FVector::Dist(Foot,RigPreviousFoot)));
+
+   if(VerifyStage==3)RigSlashMotion=FMath::Max(RigSlashMotion,float(FVector::Dist(Hand,RigPreviousHand)));
+  }
+  if(VerifyStage==0)RigPreviousHead=Head;
+  if(VerifyStage==2)RigDodgeMotion=FMath::Max(RigDodgeMotion,float(FVector::Dist(Head,RigPreviousHead)));
+  RigPreviousFoot=Foot;RigPreviousHand=Hand;
+  int32 Bit=VerifyStage<=3?(1<<VerifyStage):0;
+  float CaptureAt=VerifyStage==0?.8f:VerifyStage==1?.3f:.16f;
+  if(Bit && !(RigCaptureMask&Bit) && TestAge>CaptureAt)
+  {
+   FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir()/FString::Printf(TEXT("Verification/rig-%d.png"),VerifyStage),true,false);RigCaptureMask|=Bit;
+  }
+ }
+
  auto Next=[this](){++VerifyStage;TestAge=0;};
  switch(VerifyStage)
  {
@@ -262,9 +319,18 @@ void AToyArena::Verify(float Dt)
 }
 void AToyArena::FinishVerify()
 {
- auto R=MakeShared<FJsonObject>();bool Pass=Checks.Num()==14;
+ if(!FParse::Param(FCommandLine::Get(),TEXT("Toy2D")))
+ {
+  Checks.Add(TEXT("rig_active"),Toy->bRiggedBlockoutReady);
+  Checks.Add(TEXT("rig_run_changes_feet"),RigRunMotion>.1f);
+  Checks.Add(TEXT("rig_slash_changes_hand"),RigSlashMotion>.1f);
+  Checks.Add(TEXT("rig_dodge_changes_head"),RigDodgeMotion>.1f);
+  Checks.Add(TEXT("rig_capsule_authority"),!Toy->GetMesh()->IsSimulatingPhysics() && Toy->GetMesh()->GetCollisionEnabled()==ECollisionEnabled::NoCollision);
+ }
+ auto R=MakeShared<FJsonObject>();bool Pass=Checks.Num()>=14;
+ R->SetNumberField(TEXT("run_foot_frame_motion_cm"),RigRunMotion);R->SetNumberField(TEXT("slash_hand_frame_motion_cm"),RigSlashMotion);R->SetNumberField(TEXT("dodge_head_frame_motion_cm"),RigDodgeMotion);
  for(const auto& C:Checks){R->SetBoolField(C.Key,C.Value);Pass&=C.Value;}
- R->SetBoolField(TEXT("passed"),Pass);R->SetStringField(TEXT("scope"),TEXT("Unreal runtime integration; controller action handlers, not OS input. Existing 2D poses, not full locomotion animation."));
+ R->SetBoolField(TEXT("passed"),Pass);R->SetStringField(TEXT("scope"),TEXT("Unreal runtime integration; controller action handlers, not OS input. Rigged blockout motion and combat; visual captures reviewed separately."));
  FString Json;auto Writer=TJsonWriterFactory<>::Create(&Json);FJsonSerializer::Serialize(R,Writer);
  FFileHelper::SaveStringToFile(Json,*(FPaths::ProjectSavedDir()/TEXT("Verification/arena.json")));
  UE_LOG(LogTemp,Display,TEXT("ARENA VERIFY %s %s"),Pass?TEXT("PASS"):TEXT("FAIL"),*Json);
