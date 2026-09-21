@@ -73,3 +73,9 @@ module; it was not a fresh-checkout build or a full gameplay test.
 ToyLab now starts a 60-second single-player combat round: WASD movement, mouse aim, click/8 sword attack, Shift dodge, Space jump, and R restart. A shooting drone, health pickup, score, and adaptive camera provide a small arena loop. See [controls, setup context, and validation](Docs/COMBAT_SLICE.md). Run `zsh Scripts/play_arena.sh -ToyDemo` for the original autonomous demo.
 
 This remains a source-only repository. Generate ToyLab and supply the previously documented assets first; the local Trunks artwork and generated maps are not included. The combat drone uses engine primitive shapes.
+
+## Blender rig and 3D showcase
+
+The combat character can use a procedurally authored Blender toy with 17 bones and four polished animation clips. Source scripts include reference-inspired character detailing, a kitchen material/lighting pass, animation continuity checks, and a separate 15-second portrait showcase exporter. See [setup, provenance, validation and limitations](Docs/RIGGED_WORKFLOW.md).
+
+Generated Blender/FBX/Unreal assets and media remain excluded. The MIT license covers original code and documentation, not character or third-party artwork rights. Existing ToyLab setup requirements still apply; this is not a ready-to-run game distribution.
