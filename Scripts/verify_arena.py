@@ -14,7 +14,7 @@ with (output / 'arena-verifier-stdout.log').open('w') as log:
     subprocess.run([
         str(engine / 'Engine/Binaries/Mac/UnrealEditor-Cmd'),
         str(project / 'ToyPrototype.uproject'), '/Game/Toy/Maps/ToyLab',
-        '-game', '-ArenaVerify', '-windowed', '-ForceRes', '-ResX=1280', '-ResY=800',
+        '-game', '-ArenaVerify', '-UseFixedTimeStep', '-FPS=30', '-windowed', '-ForceRes', '-ResX=1280', '-ResY=800',
         '-ExecCmds=r.SetRes 1280x800w', '-unattended',
         f'-abslog={output / "arena-verifier.log"}',
     ], stdout=log, stderr=subprocess.STDOUT, timeout=180, check=True)
