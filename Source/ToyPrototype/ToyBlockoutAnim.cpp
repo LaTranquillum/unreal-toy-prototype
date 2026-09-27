@@ -50,3 +50,32 @@ UToyBlockoutAnim::UToyBlockoutAnim()
 }
 FAnimInstanceProxy* UToyBlockoutAnim::CreateAnimInstanceProxy(){return new FBlockoutProxy(this);}
 void UToyBlockoutAnim::DestroyAnimInstanceProxy(FAnimInstanceProxy* P){delete P;}
+
+// Expression targets are authored on the head; the existing locomotion rig stays unchanged.
+void UToyBlockoutAnim::NativeUpdateAnimation(float DeltaSeconds)
+{
+ Super::NativeUpdateAnimation(DeltaSeconds);
+ const auto* Toy=Cast<AToyCharacter>(TryGetPawnOwner());
+ if(!Toy)return;
+ const float Age=Toy->GetWorld()->GetTimeSeconds()-Toy->RigActionStarted;
+ const bool bSlash=Toy->RigAction==1 && Age>=0.f && Age<.55f;
+ const bool bDodge=Toy->RigAction==2 && Age>=0.f && Age<.4f;
+ const float AttackEnvelope=bSlash ? FMath::Clamp(Age/.10f,0.f,1.f)*FMath::Clamp((.55f-Age)/.16f,0.f,1.f) : 0.f;
+ ShoutWeight=FMath::FInterpTo(ShoutWeight,AttackEnvelope,DeltaSeconds,18.f);
+ const float Focus=(Toy->GetVelocity().Size2D()>20.f || bDodge)?1.f:0.f;
+ FocusedWeight=FMath::FInterpTo(FocusedWeight,Focus*(1.f-ShoutWeight),DeltaSeconds,8.f);
+ // One brief blink per cycle, evaluated locally; defer closure during combat actions.
+ BlinkClock+=FMath::Max(DeltaSeconds,0.f);
+ const float BlinkPhase=FMath::Fmod(BlinkClock,4.2f)-2.7f;
+ BlinkWeight=0.f;
+ if(!bSlash && !bDodge && BlinkPhase>=0.f && BlinkPhase<.24f)
+ {
+  const float Closing=FMath::Clamp(BlinkPhase/.07f,0.f,1.f);
+  const float Opening=FMath::Clamp((.24f-BlinkPhase)/.11f,0.f,1.f);
+  const float Amount=FMath::Min(Closing,Opening);
+  BlinkWeight=Amount*Amount*(3.f-2.f*Amount);
+ }
+ SetMorphTarget(TEXT("Blink"),BlinkWeight);
+ SetMorphTarget(TEXT("Focused"),FocusedWeight*(1.f-BlinkWeight));
+ SetMorphTarget(TEXT("Shout"),ShoutWeight);
+}
