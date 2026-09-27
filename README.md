@@ -76,6 +76,21 @@ This remains a source-only repository. Generate ToyLab and supply the previously
 
 ## Blender rig and 3D showcase
 
-The combat character can use a procedurally authored Blender toy with 17 bones and four polished animation clips. Source scripts include reference-inspired character detailing, a kitchen material/lighting pass, animation continuity checks, and a separate 15-second portrait showcase exporter. See [setup, provenance, validation and limitations](Docs/RIGGED_WORKFLOW.md).
+The combat character can use a procedurally authored Blender toy with 49 bones and four authored animation clips. Source scripts include reference-inspired character detailing, a kitchen material/lighting pass, animation continuity checks, and a separate 15-second portrait showcase exporter. See [setup, provenance, validation and limitations](Docs/RIGGED_WORKFLOW.md).
 
 Generated Blender/FBX/Unreal assets and media remain excluded. The MIT license covers original code and documentation, not character or third-party artwork rights. Existing ToyLab setup requirements still apply; this is not a ready-to-run game distribution.
+
+
+## Fighter refinement
+
+The current authoring workflow includes continuous weighted sleeves and trousers,
+28 finger bones with an authored sword grip, three facial morphs (Focused, Shout,
+Blink), and subtle baked hair/hem movement. The guard and strike use a leg solve
+at authoring time to plant the feet; runtime capsule movement remains authoritative.
+See [current workflow](Docs/RIGGED_WORKFLOW.md), [fighter finish](Docs/FIGHTER_FINISH.md)
+and [shoulder/hair refinement](Docs/SHOULDER_HAIR_REFINEMENT.md).
+
+The latest local Unreal capture completed 120 frames at 720 x 1280, with finger,
+expression and capsule-authority checkpoints passing. The existing FBX bind-pose
+warning remains. Generated assets and demonstration media are excluded; these
+results are not a fresh-checkout or full-game regression test.
