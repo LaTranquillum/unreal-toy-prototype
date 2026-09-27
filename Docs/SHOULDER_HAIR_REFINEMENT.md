@@ -1,0 +1,7 @@
+# Shoulder and hair continuation
+
+Reduced sleeve-cap fullness and added shallow integrated shoulder folds, preserving the continuous weighted sleeves. Flattened the cross-section of the hair locks, reduced the supporting rear hair volume and added nine tapered, overlapping nape locks. Face geometry, finger rig, trouser construction and animation timing are unchanged.
+
+The procedural build remains the editable source. `review_shoulder_hair.py` produces front/rear guard views and checks all 49 bones, normalized weights and the three facial morphs. Those checks passed. Rendered face, front and rear views were inspected. This is an incremental silhouette improvement: the hair remains sculpted clumps, and collar/pocket construction is still simplified.
+
+Four verification runs completed successfully: build with facial renders, focused geometry review, Unreal import and 120-frame action capture. Runtime checkpoints 20, 37 and 65 passed finger-bone, capsule-authority and expression checks. The contact screenshot was inspected. The prior FBX bind-pose warning remains; this short capture does not validate all gameplay transitions. The updated action video is `Saved/Videos/upper_body_fighter_4s.mp4`. Review images: `Art/ToyBlockout/ShoulderHair_front.png` and `ShoulderHair_rear.png`. Prior source is retained in `Saved/ShoulderHairBackup`. Generated assets and review media remain local and are not distributed here.

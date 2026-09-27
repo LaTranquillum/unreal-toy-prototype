@@ -1,6 +1,6 @@
 # Rigged toy, motion, environment and showcase workflow
 
-The default combat mode can now use a Blender-generated, 17-bone toy rig with idle, run, dodge and sword clips. Capsule movement remains authoritative. Missing or incompatible assets retain the original appearance; `-Toy2D` explicitly selects that fallback. Secondary physics is disabled for this rig, and there is no fitted Physics Asset, foot IK, cloth, or balance controller.
+The default combat mode can now use a Blender-generated, 49-bone fighter rig with idle, run, dodge and sword clips. Capsule movement remains authoritative. Missing or incompatible assets retain the original appearance; `-Toy2D` explicitly selects that fallback. Secondary physics is disabled for this rig, and there is no fitted Physics Asset, runtime foot IK, cloth simulation, or balance controller.
 
 ## Generate and import
 
@@ -16,7 +16,7 @@ Back up custom work before running these scripts. Blender generation replaces th
 zsh Scripts/build.sh
 ```
 
-`toy_trunks_geometry.py` constructs a stylized reference-inspired character. It includes curved hair, garment seams and stitching, belt hardware, sleeve emblem, boot details and sword/scabbard fittings. The current authored mesh has 28,910 vertices; all vertices have weights. `toy_motion.py` supplies continuous poses with run counter-rotation, staged dodge recovery and sword anticipation/follow-through. The in-place clips remain simplified; clothing intersections and foot sliding can occur.
+`toy_trunks_geometry.py` constructs a stylized reference-inspired character. It includes curved hair, garment seams and stitching, belt hardware, sleeve emblem, boot details and sword/scabbard fittings. All vertices have weights; the current vertex count is recorded by each build in `Art/ToyBlockout/asset_report.json`. `toy_motion.py` supplies continuous poses with run counter-rotation, staged dodge recovery and sword anticipation/follow-through. The in-place clips remain simplified; clothing intersections and foot sliding during locomotion can occur. Guard and strike have baked planted-foot poses, not runtime ground adaptation.
 
 The scripts are original code; the MIT license does not grant rights to the Trunks character, Capsule insignia, or third-party reference artwork. No reference image, generated mesh, Blender file, screenshot or video is distributed here. Adapt the geometry and branding for your own character as appropriate.
 
@@ -43,3 +43,20 @@ In the configured local project: the Unreal editor target built successfully; th
 The showcase generated and ffprobe decoded 450 frames at 720 x 1280 and exactly 15 seconds. That video predates the final intricate-detail geometry pass and was not regenerated afterward. Studio close-ups and gameplay poses were separately inspected for the final geometry. These results do not establish fresh-checkout playability, variable-frame-hitch robustness, deterministic physics, or final cinematic quality.
 
 Development and validation were assisted by OpenAI Codex. No independent review, external maintainer endorsement, or contributor-program eligibility is claimed.
+
+
+## Current character review commands
+
+Generate the character before importing and reviewing it. Use `-- --head-review`
+for facial renders or `-- --finish-review` for a full-body turntable and planted-foot
+checks with the Blender generation command above. Install ffmpeg on PATH for video
+encoding. Run `Scripts/review_shoulder_hair.py` through Blender for two targeted
+views after generation. `python3 Scripts/capture_upper_body.py` runs a four-second
+Unreal guard/strike capture; `python3 Scripts/preview_toy_head.py` checks expression
+states and a natural blink. Both require the configured ToyLab and compiled module.
+
+Blender has procedural cloth microtexture and sheen; Unreal receives shared base
+color, roughness, metallic and specular values, not those procedural nodes.
+The milestone documents preserve the checks performed at each stage, including
+older bone counts; the current rig has 49 bones. Refer to the face, upper-body,
+fighter-finish and shoulder/hair notes for remaining limitations.

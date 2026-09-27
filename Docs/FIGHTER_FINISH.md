@@ -1,0 +1,11 @@
+# Fighter finish pass
+
+This local pass continues the upper-body and face milestones. It replaces the separate thigh, knee and calf garment volumes with continuous trousers, narrows the sleeves, flattens raised jacket piping and adds small zipper teeth and hem hardware. Existing articulated fingers, sword grip and face morphs are retained.
+
+The rig now includes four secondary bones for restrained hair-tip and jacket-hem movement (49 bones total). Guard and slash use an authored two-bone leg solve during baking to hold both ankles on their marks as the pelvis lowers and turns. Unreal continues to use baked animation and authoritative capsule movement; this is not a runtime balance system or cloth simulation.
+
+Material values distinguish matte fabric, leather, satin hair and metallic sword/hardware. Blender additionally uses procedural UV microtexture and cloth sheen. Unreal currently uses the shared base color, roughness, metallic and specular values; Blender's procedural bump and sheen are not exported automatically.
+
+Review outputs: `Art/ToyBlockout/fighter_finish_turntable.mp4`, `Fighter_guard.png`, `Fighter_contact.png`, `Fighter_follow.png` and `fighter_finish_review.json`. The Unreal capture remains `Saved/Videos/upper_body_fighter_4s.mp4` using the existing bounded guard/strike review mode.
+
+Validation completed in six runs: one build failed on a Blender socket name and was corrected; the second build passed normalized skin weights, 5,374 blended knee vertices and planted-ankle checks. The Unreal import preserved all three face morphs and four clips. Bone continuity passed for all clips. The first capture timed out during cold shader loading; the isolated retry completed 120 frames with all three runtime checkpoints passing. Front, side, rear and strike images were inspected. Unreal still emits the prior FBX bind-pose warning and a zero-length tangent normal warning; no gross deformation was observed in this bounded capture. This does not validate every gameplay transition. This remains a procedurally authored stylized character, not a completed production fighter asset. Clothing folds, shoulder construction and the hair silhouette still have room for manual sculpting; no new LODs or cloth simulation are introduced.
