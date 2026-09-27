@@ -4,6 +4,9 @@ from pathlib import Path
 root=Path(__file__).resolve().parents[1];sys.path.insert(0,str(root/'Scripts'))
 from toy_motion import pose
 bpy.ops.wm.open_mainfile(filepath=str(root/'Art/ToyBlockout/ToyBlockout.blend'))
+# This check measures bones only; avoid evaluating the dense review mesh.
+for obj in bpy.data.objects:
+ if obj.type=='MESH':obj.hide_viewport=True
 rig=bpy.data.objects['ToyRig'];rig.animation_data.action=None
 report={}
 def snapshot():return {b.name:(b.rotation_quaternion.copy(),b.location.copy()) for b in rig.pose.bones}

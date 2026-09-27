@@ -1,4 +1,4 @@
-"""Original segmented toy, rigid skinning and four authored animations. Blender 4.5."""
+"""Toy authoring with blended upper-body skinning and four animations. Blender 4.5."""
 import bpy, math, json, sys
 from pathlib import Path
 from mathutils import Vector, Quaternion
@@ -37,6 +37,13 @@ for side,x in [('l',1),('r',-1)]:
  bone('thigh_'+side,(x*.115,0,.87),(x*.13,0,.49),'pelvis')
  bone('calf_'+side,(x*.13,0,.49),(x*.13,0,.13),'thigh_'+side)
  bone('foot_'+side,(x*.13,0,.13),(x*.13,-.20,.08),'calf_'+side)
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from toy_upper_body import add_bones, build as build_upper_body
+add_bones(bone)
+from toy_fighter_finish import add_bones as finish_bones, build as build_finish
+finish_bones(bone)
+from toy_materials import blender_materials
+blender_materials(mats)
 bpy.ops.object.mode_set(mode='OBJECT')
 parts=[]
 def finish(o,name,mat,b):
@@ -61,10 +68,15 @@ def segment(name,a,b,r,mat,bn):
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from toy_trunks_geometry import build
 build(globals())
-# Join skinned parts; preserve rigid vertex groups and material slots.
+build_upper_body(globals())
+build_finish(globals())
+from toy_head import add_expressions
+add_expressions(parts)
+# Join skinned parts; preserve blended/rigid vertex groups and material slots.
 bpy.ops.object.select_all(action='DESELECT')
 for o in parts:o.select_set(True)
 bpy.context.view_layer.objects.active=parts[0];bpy.ops.object.join();mesh=bpy.context.object;mesh.name='SK_ToyBlockout'
+bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT');bpy.ops.uv.smart_project(island_margin=.01);bpy.ops.object.mode_set(mode='OBJECT')
 mesh.parent=rig;mod=mesh.modifiers.new('Toy skin','ARMATURE');mod.object=rig
 rig.animation_data_create()
 def rotate(name,axis,degrees):
@@ -88,15 +100,18 @@ for kind,n in lengths.items():
  actions[kind]=act
 rig.animation_data.action=None;reset();scene.frame_set(1)
 bpy.ops.object.select_all(action='DESELECT');rig.select_set(True);mesh.select_set(True);bpy.context.view_layer.objects.active=rig
-common=dict(use_selection=True,object_types={'ARMATURE','MESH'},add_leaf_bones=False,mesh_smooth_type='FACE',axis_forward='-Y',axis_up='Z',apply_unit_scale=True,bake_anim_use_all_actions=False,bake_anim_use_nla_strips=False,bake_anim_simplify_factor=0)
+common=dict(use_selection=True,object_types={'ARMATURE','MESH'},add_leaf_bones=False,mesh_smooth_type='FACE',axis_forward='-Y',axis_up='Z',apply_unit_scale=True,use_mesh_modifiers=False,bake_anim_use_all_actions=False,bake_anim_use_nla_strips=False,bake_anim_simplify_factor=0)
 bpy.ops.export_scene.fbx(filepath=str(OUT/'SK_ToyBlockout.fbx'),bake_anim=False,**common)
 for kind,n in lengths.items():
  rig.animation_data.action=actions[kind];scene.frame_start=1;scene.frame_end=n+1
  bpy.ops.export_scene.fbx(filepath=str(OUT/('A_Toy'+kind+'.fbx')),bake_anim=True,**common)
 rig.animation_data.action=actions['Idle'];scene.frame_start=1;scene.frame_end=61;scene.frame_set(1)
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'ToyBlockout.blend'))
-report={'motion_revision':'staged anticipation and recovery','bones':len(rig.data.bones),'vertices':len(mesh.data.vertices),'materials':list(colors),'material_colors':colors,'revision':'Intricate reference detail pass','actions':list(lengths),'original_geometry':True,'all_vertices_weighted':all(len(v.groups)>0 for v in mesh.data.vertices)}
+report={'motion_revision':'staged anticipation and recovery','bones':len(rig.data.bones),'vertices':len(mesh.data.vertices),'materials':list(colors),'material_colors':colors,'revision':'Fighter finish: continuous trousers, material separation and planted guard','expressions':list(mesh.data.shape_keys.key_blocks.keys()),'actions':list(lengths),'original_geometry':True,'all_vertices_weighted':all(len(v.groups)>0 for v in mesh.data.vertices)}
 (OUT/'asset_report.json').write_text(json.dumps(report,indent=2));print('TOY BLENDER COMPLETE',report)
+
+def render_standard():
+ if '--head-review' not in sys.argv and '--fighter-review' not in sys.argv and '--finish-review' not in sys.argv:bpy.ops.render.render(write_still=True)
 
 # A reusable studio view saved with the editable source, after FBX export.
 scene.render.engine='CYCLES';scene.cycles.samples=32
@@ -111,8 +126,40 @@ fm=bpy.data.materials.new('StudioGround');fm.diffuse_color=(.08,.095,.12,1);floo
 scene.render.image_settings.file_format='PNG';scene.render.filepath=str(OUT/'Trunks_detail_preview.png')
 bpy.ops.object.select_all(action='DESELECT');mesh.select_set(True);rig.select_set(True);bpy.context.view_layer.objects.active=rig
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'ToyBlockout.blend'))
-bpy.ops.render.render(write_still=True)
+render_standard()
 
-rig.animation_data.action=actions['Slash'];scene.frame_set(8);scene.render.filepath=str(OUT/'Trunks_slash_preview.png');bpy.ops.render.render(write_still=True)
+rig.animation_data.action=actions['Slash'];scene.frame_set(8);scene.render.filepath=str(OUT/'Trunks_slash_preview.png');render_standard()
 
-rig.animation_data.action=actions['Idle'];scene.frame_set(1);camera.location=(1.3,-3,1.9);camera.data.ortho_scale=.90;aim(camera,(0,-.01,1.37));scene.render.filepath=str(OUT/'Trunks_detail_closeup.png');bpy.ops.render.render(write_still=True)
+rig.animation_data.action=actions['Idle'];scene.frame_set(1);camera.location=(1.3,-3,1.9);camera.data.ortho_scale=.90;aim(camera,(0,-.01,1.37));scene.render.filepath=str(OUT/'Trunks_detail_closeup.png');render_standard()
+
+# Head milestone contact renders: consistent lighting and explicit expression targets.
+rig.animation_data.action=None;reset();scene.frame_set(1)
+scene.render.resolution_x=800;scene.render.resolution_y=900
+for label,loc,target,scale,focused,shout in [
+ ('front_neutral',(0,-3,1.60),(0,0,1.60),.49,0,0),
+ ('threequarter_neutral',(.95,-2,1.75),(0,0,1.60),.51,0,0),
+ ('front_focused',(0,-3,1.60),(0,0,1.60),.49,1,0),
+ ('threequarter_shout',(.95,-2,1.75),(0,0,1.58),.53,0,1),
+ ('gameplay_distance',(.8,-3,1.6),(0,0,.92),2.15,1,0)]:
+ mesh.data.shape_keys.key_blocks['Focused'].value=focused
+ mesh.data.shape_keys.key_blocks['Shout'].value=shout
+ camera.location=loc;camera.data.ortho_scale=scale;aim(camera,target)
+ scene.render.filepath=str(OUT/('Head_'+label+'.png'))
+ if '--fighter-review' not in sys.argv and '--finish-review' not in sys.argv:bpy.ops.render.render(write_still=True)
+mesh.data.shape_keys.key_blocks['Focused'].value=0;mesh.data.shape_keys.key_blocks['Shout'].value=0
+if '--head-review' in sys.argv:
+ camera.location=(.6,-3,1.65);camera.data.ortho_scale=.46;aim(camera,(0,0,1.575))
+ for amount in (.5,1.0):
+  mesh.data.shape_keys.key_blocks['Blink'].value=amount
+  scene.render.filepath=str(OUT/('Face_blink_'+str(amount)+'.png'));bpy.ops.render.render(write_still=True)
+ mesh.data.shape_keys.key_blocks['Blink'].value=0
+camera.location=(.95,-2,1.75);camera.data.ortho_scale=.51;aim(camera,(0,0,1.60))
+bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'ToyBlockout.blend'))
+
+if '--fighter-review' in sys.argv:
+ from review_upper_body import render_review
+ render_review(globals())
+
+if "--finish-review" in sys.argv:
+ from review_fighter_finish import render_review
+ render_review(globals())
