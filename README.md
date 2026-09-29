@@ -94,3 +94,23 @@ The latest local Unreal capture completed 120 frames at 720 x 1280, with finger,
 expression and capsule-authority checkpoints passing. The existing FBX bind-pose
 warning remains. Generated assets and demonstration media are excluded; these
 results are not a fresh-checkout or full-game regression test.
+
+
+## Cutout player and rotating statue
+
+Normal arena play now uses the camera-facing 2D cutout and its existing action
+artwork. The procedural 3D character appears separately as a life-size display
+statue in a simple lounge corner, turning 360 degrees every 24 seconds.
+Use `-Toy3D` for the rigged player or `-ToyShowcase` for the existing 3D showcase.
+See [setup and validation](Docs/CUTOUT_AND_STATUE.md).
+
+The latest authoring pass refines facial proportions and eyes, joins the jacket
+and sleeves, and reduces the jacket from 144,852 to 31,869 vertices. Full character
+vertex count is 196,777; this is prototype reduction, not production retopology.
+See [mesh measurements and limitations](Docs/JACKET_SLEEVE_REFINEMENT.md).
+
+The configured local Unreal build and final gameplay check passed. The first
+check flagged an intermittent dodge-cooldown assertion; the repeat passed. A
+26-second display review confirmed the cutout and a complete statue revolution.
+These are local integration results, not a fresh-checkout game validation.
+Artwork and generated assets remain separately supplied and excluded from this repo.
