@@ -1,4 +1,6 @@
 #include "ToyArena.h"
+#include "Animation/AnimSequence.h"
+#include "Engine/SkeletalMesh.h"
 #include "ToyCharacter.h"
 #include "ToyGameMode.h"
 #include "ToyPlayerController.h"
@@ -47,7 +49,31 @@ void AToyArena::BeginPlay()
  auto* PC=GetWorld()->GetFirstPlayerController();
  if(auto* Old=Toy->GetController()){Old->UnPossess();Old->Destroy();}
  PC->Possess(Toy); PC->bAutoManageActiveCameraTarget=false;
- Toy->EnableRiggedBlockout();
+ // Normal play uses the original art; explicit rig/showcase review remains available.
+ if(FParse::Param(FCommandLine::Get(),TEXT("ToyShowcase")) || FParse::Param(FCommandLine::Get(),TEXT("Toy3D")))
+  Toy->EnableRiggedBlockout();
+ else
+ {
+  auto* Mesh=LoadObject<USkeletalMesh>(nullptr,TEXT("/Game/Toy/Blockout/SK_ToyBlockout.SK_ToyBlockout"));
+  auto* Idle=LoadObject<UAnimSequence>(nullptr,TEXT("/Game/Toy/Blockout/A_ToyIdle.A_ToyIdle"));
+  if(Mesh && Idle)
+  {
+   DisplayStatue=NewObject<USkeletalMeshComponent>(this,TEXT("LivingRoomStatue"));
+   AddInstanceComponent(DisplayStatue);DisplayStatue->RegisterComponent();
+   DisplayStatue->SetSkeletalMesh(Mesh);
+   DisplayStatue->SetWorldLocation(FVector(660,420,24));
+   DisplayStatue->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+   DisplayStatue->SetCanEverAffectNavigation(false);DisplayStatue->SetCastShadow(true);
+   DisplayStatue->PlayAnimation(Idle,false);DisplayStatue->SetPosition(0,false);DisplayStatue->bPauseAnims=true;
+  }
+  const TCHAR* Dark=TEXT("/Game/Toy/Kitchen/M_Graphite.M_Graphite");
+  const TCHAR* Ivory=TEXT("/Game/Toy/Kitchen/M_IvoryCabinet.M_IvoryCabinet");
+  Shape(FVector(660,420,12),FVector(1.5,1.5,.24),TEXT("/Engine/BasicShapes/Cylinder.Cylinder"),Dark,true);
+  // Compact lounge along the east wall, clear of the kitchen islands.
+  Shape(FVector(845,130,28),FVector(1.15,2.6,.4),TEXT("/Engine/BasicShapes/Cube.Cube"),Ivory,true);
+  Shape(FVector(900,130,67),FVector(.25,2.6,.85),TEXT("/Engine/BasicShapes/Cube.Cube"),Ivory,true);
+  for(float Y:{-10.f,270.f})Shape(FVector(845,Y,48),FVector(1.15,.20,.7),TEXT("/Engine/BasicShapes/Cube.Cube"),Ivory,true);
+ }
  Toy->PlaceholderLabel->SetHiddenInGame(true);
  Toy->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility,ECR_Block);
  auto* Move=Toy->GetCharacterMovement(); Move->MaxWalkSpeed=420; Move->MaxAcceleration=3600;
@@ -176,9 +202,33 @@ void AToyArena::UpdateBolts(float Dt)
 void AToyArena::Tick(float Dt)
 {
  Super::Tick(Dt);if(!Toy)return;
+ if(DisplayStatue)
+ {
+  StatueTurn+=15.f*Dt;
+  DisplayStatue->SetWorldRotation(FRotator(0,FMath::Fmod(StatueTurn,360.f),0));
+ }
 #if WITH_EDITOR
  if((bVerify || bShowcase) && GShaderCompilingManager && GShaderCompilingManager->IsCompiling())return;
 #endif
+ if(FParse::Param(FCommandLine::Get(),TEXT("DisplayVerify")))
+ {
+  Toy->SetActorLocation(FVector(390,310,90));Toy->GetCharacterMovement()->StopMovementImmediately();
+  Camera->SetActorLocation(FVector(1120,-420,440));
+  Camera->SetActorRotation((FVector(610,350,115)-Camera->GetActorLocation()).Rotation());
+  const float Age=StatueTurn/15.f;
+  for(int32 I=0;I<3;++I)if(Age>1+12*I && !(DisplayReviewMask&(1<<I)))
+  {
+   DisplayReviewMask|=1<<I;
+   FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir()/FString::Printf(TEXT("Verification/display_%d.png"),I),false,false);
+  }
+  if(Age>26)
+  {
+   const bool Pass=Toy->bUseImageCutout && Toy->bCutoutReady && Toy->ImageCutout->IsVisible() && DisplayStatue && StatueTurn>360 && DisplayReviewMask==7;
+   FFileHelper::SaveStringToFile(Pass?TEXT("PASS cutout visible; statue completed 360 degrees; three captures requested"):TEXT("FAIL"),*(FPaths::ProjectSavedDir()/TEXT("Verification/display.txt")));
+   FPlatformMisc::RequestExitWithStatus(false,Pass?0:1);
+  }
+  return;
+ }
  if(bShowcase){TickShowcase(Dt);return;}
  Clock+=Dt;HitFlash=FMath::Max(0.f,HitFlash-Dt);Shake=FMath::Max(0.f,Shake-Dt);
  auto* PC=GetWorld()->GetFirstPlayerController();
@@ -319,13 +369,19 @@ void AToyArena::Verify(float Dt)
 }
 void AToyArena::FinishVerify()
 {
- if(!FParse::Param(FCommandLine::Get(),TEXT("Toy2D")))
+ if(Toy->bRiggedBlockoutReady)
  {
   Checks.Add(TEXT("rig_active"),Toy->bRiggedBlockoutReady);
   Checks.Add(TEXT("rig_run_changes_feet"),RigRunMotion>.1f);
   Checks.Add(TEXT("rig_slash_changes_hand"),RigSlashMotion>.1f);
   Checks.Add(TEXT("rig_dodge_changes_head"),RigDodgeMotion>.1f);
   Checks.Add(TEXT("rig_capsule_authority"),!Toy->GetMesh()->IsSimulatingPhysics() && Toy->GetMesh()->GetCollisionEnabled()==ECollisionEnabled::NoCollision);
+ }
+ if(!Toy->bRiggedBlockoutReady)
+ {
+  Checks.Add(TEXT("cutout_main_character"),Toy->bUseImageCutout && Toy->bCutoutReady && Toy->ImageCutout->IsVisible());
+  Checks.Add(TEXT("display_statue_loaded"),DisplayStatue!=nullptr);
+  Checks.Add(TEXT("display_statue_rotates"),DisplayStatue && StatueTurn>5.f);
  }
  auto R=MakeShared<FJsonObject>();bool Pass=Checks.Num()>=14;
  R->SetNumberField(TEXT("run_foot_frame_motion_cm"),RigRunMotion);R->SetNumberField(TEXT("slash_hand_frame_motion_cm"),RigSlashMotion);R->SetNumberField(TEXT("dodge_head_frame_motion_cm"),RigDodgeMotion);
