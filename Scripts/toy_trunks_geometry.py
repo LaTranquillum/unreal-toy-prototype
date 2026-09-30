@@ -1,4 +1,4 @@
-"""Reference-inspired toy geometry; shares the existing 17-bone blockout rig."""
+"""Reference-inspired toy geometry; uses the original core rig with optional upper-body refinement."""
 import bpy, math
 from mathutils import Vector
 
@@ -53,47 +53,8 @@ def build(ns):
  box('strap_buckle_inner',(.056,-.204,1.135),(.041,.008,.046),'Leather','chest')
  segment('empty_scabbard',(.27,.16,.78),(-.23,.16,1.46),.048,'Leather','chest')
  segment('scabbard_rim',(-.207,.16,1.43),(-.23,.16,1.46),.057,'Boots','chest')
- # Angular jaw, smaller nose, readable serious eyes.
- ell('neck',(0,0,1.417),(.07,.066,.09),'Skin','head')
- loft('sculpted_head',[(0,-.025,1.435,.048,.056),(0,-.025,1.465,.088,.09),(0,-.015,1.535,.135,.117),(0,0,1.635,.14,.125),(0,.015,1.705,.11,.105),(0,.015,1.73,.055,.06)],'Skin','head',20)
- for s in [-1,1]:
-  ell('ear',(s*.137,.0,1.553),(.025,.03,.05),'Skin','head')
-  ell('ear_inner',(s*.151,-.023,1.553),(.012,.009,.026),'SkinShade','head')
-  # Eyelids slope toward nose; use flat inlaid anime eyes.
-  plate('eye_outline',[(s*.025,-.135,1.562),(s*.101,-.119,1.577),(s*.099,-.121,1.543),(s*.028,-.138,1.540)],.006,'Eyes','head')
-  plate('eye_white',[(s*.028,-.142,1.560),(s*.096,-.128,1.574),(s*.094,-.131,1.546),(s*.031,-.144,1.542)],.002,'White','head')
-  ell('iris',(s*.052,-.146,1.552),(.011,.002,.015),'Iris','head')
-  ell('pupil',(s*.052,-.149,1.552),(.004,.0015,.011),'Eyes','head')
-  line('eyebrow',[(s*.022,-.142,1.583),(s*.068,-.137,1.598),(s*.108,-.118,1.6)],.0045,'HairShade','head')
- poly('nose',[(0,-.133,1.576),(-.016,-.144,1.508),(.016,-.144,1.508),(0,-.178,1.52)],[(0,1,3),(0,3,2),(1,2,3),(0,2,1)],'Skin','head')
- line('mouth',[(-.032,-.13,1.483),(0,-.139,1.478),(.028,-.13,1.482)],.0018,'SkinShade','head')
- # Center-parted bob: sculpted tapered locks, rather than a spherical cap.
- loft('hair_back',[(0,.055,1.515,.135,.082),(0,.035,1.59,.159,.13),(0,.025,1.695,.16,.132),(0,.016,1.762,.10,.09),(0,.016,1.778,.025,.035)],'Hair','head',20)
- def lock(name,points,widths,mat):
-  # Catmull-Rom samples keep the original silhouette but round the lock bends.
-  old=[Vector(p) for p in points];ww=widths;points=[];widths=[]
-  for j in range(len(old)-1):
-   a,b,c,d=old[max(0,j-1)],old[j],old[j+1],old[min(len(old)-1,j+2)]
-   for k in range(6):
-    t=k/6;points.append(.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t));widths.append(ww[j]*(1-t)+ww[j+1]*t)
-  points.append(old[-1]);widths.append(ww[-1])
-  verts=[];n=10
-  for j,p in enumerate(points):
-   p=Vector(p);d=Vector(points[min(j+1,len(points)-1)])-Vector(points[max(0,j-1)])
-   tangent=d.normalized();across=Vector((0,-1,0)).cross(tangent).normalized();normal=tangent.cross(across).normalized()
-   for i in range(n):
-    a=i*2*math.pi/n;verts.append(p+across*(widths[j]*math.cos(a))+normal*(widths[j]*.38*math.sin(a)))
-  faces=[tuple(reversed(range(n))),tuple((len(points)-1)*n+i for i in range(n))]
-  for j in range(len(points)-1):
-   for i in range(n):faces.append((j*n+i,j*n+(i+1)%n,(j+1)*n+(i+1)%n,(j+1)*n+i))
-  poly(name,verts,faces,mat,'head')
- for s in [-1,1]:
-  for i in range(6):
-   pts=[(s*(.007+i*.010),-.045+i*.013,1.773-i*.003),(s*(.054+i*.017),-.108+i*.009,1.738),(s*(.094+i*.012),-.135+i*.012,1.665),(s*(.074+i*.018),-.146+i*.014,1.568+i*.008)]
-   lock('parted_bang',pts,[.018,.027,.023,.0015],'Hair' if i%2 else 'HairLight')
-   line('hair_groove',[(x,y-.008,z) for x,y,z in pts[:-1]],.0012,'HairShade','head')
-  for i in range(3):
-   lock('side_bob',[(s*.13,.015+i*.037,1.7),(s*.162,.01+i*.035,1.63),(s*.145,.025+i*.03,1.535)], [.028,.032,.003],'Hair')
+ from toy_head import build_head
+ build_head(globals() | locals())
  # Sleeves, folds, cuffs and tapered baggy trousers.
  for side,s in [('l',1),('r',-1)]:
   for bn,r in [('upperarm',.098),('lowerarm',.082)]:

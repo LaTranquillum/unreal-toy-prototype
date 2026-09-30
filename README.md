@@ -76,6 +76,41 @@ This remains a source-only repository. Generate ToyLab and supply the previously
 
 ## Blender rig and 3D showcase
 
-The combat character can use a procedurally authored Blender toy with 17 bones and four polished animation clips. Source scripts include reference-inspired character detailing, a kitchen material/lighting pass, animation continuity checks, and a separate 15-second portrait showcase exporter. See [setup, provenance, validation and limitations](Docs/RIGGED_WORKFLOW.md).
+The combat character can use a procedurally authored Blender toy with 49 bones and four authored animation clips. Source scripts include reference-inspired character detailing, a kitchen material/lighting pass, animation continuity checks, and a separate 15-second portrait showcase exporter. See [setup, provenance, validation and limitations](Docs/RIGGED_WORKFLOW.md).
 
 Generated Blender/FBX/Unreal assets and media remain excluded. The MIT license covers original code and documentation, not character or third-party artwork rights. Existing ToyLab setup requirements still apply; this is not a ready-to-run game distribution.
+
+
+## Fighter refinement
+
+The current authoring workflow includes continuous weighted sleeves and trousers,
+28 finger bones with an authored sword grip, three facial morphs (Focused, Shout,
+Blink), and subtle baked hair/hem movement. The guard and strike use a leg solve
+at authoring time to plant the feet; runtime capsule movement remains authoritative.
+See [current workflow](Docs/RIGGED_WORKFLOW.md), [fighter finish](Docs/FIGHTER_FINISH.md)
+and [shoulder/hair refinement](Docs/SHOULDER_HAIR_REFINEMENT.md).
+
+The latest local Unreal capture completed 120 frames at 720 x 1280, with finger,
+expression and capsule-authority checkpoints passing. The existing FBX bind-pose
+warning remains. Generated assets and demonstration media are excluded; these
+results are not a fresh-checkout or full-game regression test.
+
+
+## Cutout player and rotating statue
+
+Normal arena play now uses the camera-facing 2D cutout and its existing action
+artwork. The procedural 3D character appears separately as a life-size display
+statue in a simple lounge corner, turning 360 degrees every 24 seconds.
+Use `-Toy3D` for the rigged player or `-ToyShowcase` for the existing 3D showcase.
+See [setup and validation](Docs/CUTOUT_AND_STATUE.md).
+
+The latest authoring pass refines facial proportions and eyes, joins the jacket
+and sleeves, and reduces the jacket from 144,852 to 31,869 vertices. Full character
+vertex count is 196,777; this is prototype reduction, not production retopology.
+See [mesh measurements and limitations](Docs/JACKET_SLEEVE_REFINEMENT.md).
+
+The configured local Unreal build and final gameplay check passed. The first
+check flagged an intermittent dodge-cooldown assertion; the repeat passed. A
+26-second display review confirmed the cutout and a complete statue revolution.
+These are local integration results, not a fresh-checkout game validation.
+Artwork and generated assets remain separately supplied and excluded from this repo.

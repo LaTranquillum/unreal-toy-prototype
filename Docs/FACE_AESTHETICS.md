@@ -1,0 +1,7 @@
+# Facial aesthetics pass
+
+Smoothed the cheek-to-jaw contour with interpolated cross-sections, softened the cheek projection and reduced the nose tip and bridge. Narrower eye apertures, lighter lower outlines and tapered dark brows replace the heavier previous features. The mouth is smaller and positioned closer to the facial surface. The shout morph recesses the mouth region to expose its cavity. Existing face morph names and runtime timings are preserved.
+
+Neutral, three-quarter, focused, shout and blink renders were inspected. Both morph-scope checks passed; the corrected build retains deformation only on head-weighted vertices. The Unreal import succeeded with the existing FBX bind-pose warning. Runtime verification passed neutral, focused, shout, recovery and full-blink checkpoints. Neutral and closed-eye Unreal screenshots were visually inspected. Six verification runs were used, including the mouth correction and repeated morph-scope validation. This was not a full-game regression test.
+
+This is a local aesthetic refinement, not a full facial rig: the mouth cavity and shout remain simplified, and hair/ears still have sculpted toy proportions. No body, gameplay or combat timing changes were made. Blender quick previews use an optional `--quick-review` flag (12 samples); standard renders remain 32 samples. Prior source is retained in `Saved/FaceAestheticBackup`. No GitHub publication was performed for this pass.

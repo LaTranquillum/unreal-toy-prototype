@@ -31,6 +31,9 @@ private:
  float Clock=0, Swing=-1, DodgeUntil=0, DodgeReady=0, InvulnerableUntil=0;
  float ShootAt=2, RespawnAt=0, PickupAt=0, HitFlash=0, Shake=0;
  FVector LockedShot=FVector::ZeroVector;
+ UPROPERTY() TObjectPtr<class USkeletalMeshComponent> DisplayStatue;
+ float StatueTurn=0;
+ int32 DisplayReviewMask=0;
  bool bShowcase=false;
  int32 ShowcaseFrame=-60;
  FString ShowcaseDirectory;
