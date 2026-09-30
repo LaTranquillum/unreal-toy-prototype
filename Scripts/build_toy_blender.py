@@ -10,8 +10,8 @@ scene.unit_settings.system='METRIC';scene.unit_settings.scale_length=1
 scene.render.fps=30
 colors={'Jacket':(.13,.25,.39,1),'Pants':(.035,.045,.07,1),'Skin':(.72,.43,.25,1),'Hair':(.33,.12,.55,1),'Boots':(.67,.39,.09,1),'Steel':(.55,.65,.73,1),'Eyes':(.015,.025,.04,1),'White':(.9,.93,.95,1)}
 colors.update({'Trim':(.22,.35,.48,1),'Leather':(.31,.15,.045,1),'SkinShade':(.29,.12,.07,1),'HairShade':(.14,.075,.24,1),'HairLight':(.47,.31,.62,1),'Iris':(.08,.30,.32,1),'PantsFold':(.052,.061,.075,1),'BootLight':(.74,.49,.19,1),'Badge':(.58,.055,.07,1)})
-colors['Skin']=(.72,.47,.30,1)
-colors['Hair']=(.32,.19,.45,1)
+colors['Skin']=(.72,.44,.25,1)
+colors['Hair']=(.32,.25,.39,1)
 mats={}
 for name,color in colors.items():
  m=bpy.data.materials.new(name);m.diffuse_color=color;m.use_nodes=True
@@ -70,8 +70,9 @@ from toy_trunks_geometry import build
 build(globals())
 build_upper_body(globals())
 build_finish(globals())
-from toy_head import add_expressions
+from toy_head import add_expressions, reference_proportions
 add_expressions(parts)
+reference_proportions(parts)
 # Join skinned parts; preserve blended/rigid vertex groups and material slots.
 bpy.ops.object.select_all(action='DESELECT')
 for o in parts:o.select_set(True)
@@ -114,7 +115,7 @@ def render_standard():
  if '--head-review' not in sys.argv and '--fighter-review' not in sys.argv and '--finish-review' not in sys.argv:bpy.ops.render.render(write_still=True)
 
 # A reusable studio view saved with the editable source, after FBX export.
-scene.render.engine='CYCLES';scene.cycles.samples=32
+scene.render.engine='CYCLES';scene.cycles.samples=12 if '--quick-review' in sys.argv else 32
 scene.render.resolution_x=1000;scene.render.resolution_y=1100;scene.render.resolution_percentage=100
 scene.world.color=(.18,.18,.18)
 def aim(o,target):o.rotation_euler=(Vector(target)-o.location).to_track_quat('-Z','Y').to_euler()

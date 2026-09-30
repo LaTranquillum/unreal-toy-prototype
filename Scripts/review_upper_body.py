@@ -1,5 +1,5 @@
 """Upper-body turntable and structural checks in the authored Blender scene."""
-import json,math,shutil,subprocess
+import json,math,shutil,subprocess,sys
 from pathlib import Path
 import bpy
 from mathutils import Vector
@@ -24,11 +24,13 @@ def render_review(ns):
     (OUT/'upper_body_report.json').write_text(json.dumps(report,indent=2))
     scene.render.engine='CYCLES';scene.cycles.samples=12;scene.cycles.use_denoising=True
     scene.render.resolution_x=720;scene.render.resolution_y=720;scene.render.resolution_percentage=100
-    camera.data.ortho_scale=1.70
-    folder=OUT/'UpperBodyTurntable';folder.mkdir(exist_ok=True)
+    jacket_review="--jacket-review" in sys.argv
+    camera.data.ortho_scale=1.35 if jacket_review else 1.70
+    folder=OUT/('JacketTurntable' if jacket_review else 'UpperBodyTurntable');folder.mkdir(exist_ok=True)
     pose('Idle',0);bpy.context.view_layer.update()
-    for i in range(36):
-        a=math.tau*i/36
+    frames=24 if jacket_review else 36
+    for i in range(frames):
+        a=math.tau*i/frames
         camera.location=(2.8*math.sin(a),-2.8*math.cos(a),1.75);aim(camera,(0,-.15,1.31))
         scene.render.filepath=str(folder/f'frame_{i:03d}.png');bpy.ops.render.render(write_still=True)
     for name,t in [('guard',0),('windup',.12/.55),('contact',.23/.55),('followthrough',.30/.55)]:
@@ -39,5 +41,5 @@ def render_review(ns):
     bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'ToyBlockout.blend'))
     ffmpeg=shutil.which('ffmpeg')
     if ffmpeg:
-        subprocess.run([ffmpeg,'-y','-loglevel','error','-framerate','12','-i',str(folder/'frame_%03d.png'),'-c:v','libx264','-pix_fmt','yuv420p','-movflags','+faststart',str(OUT/'upper_body_turntable.mp4')],check=True,timeout=60)
+        subprocess.run([ffmpeg,'-y','-loglevel','error','-framerate',str(frames//3),'-i',str(folder/'frame_%03d.png'),'-c:v','libx264','-pix_fmt','yuv420p','-movflags','+faststart',str(OUT/('jacket_turntable.mp4' if jacket_review else 'upper_body_turntable.mp4'))],check=True,timeout=60)
     print('UPPER BODY REVIEW COMPLETE',report)

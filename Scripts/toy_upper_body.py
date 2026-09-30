@@ -47,9 +47,6 @@ def build(ns):
         t=max(0,min(1,(x-a)/(b-a)));return t*t*(3-2*t)
     def arm_weights(p,side):
         z=p.z
-        if z>1.30:
-            chest=.65*smoothstep(1.30,1.40,z)
-            return {'chest':chest,'upperarm_'+side:1-chest}
         lower=1-smoothstep(1.025,1.16,z)
         hand=.25*(1-smoothstep(.875,.92,z))
         return {'upperarm_'+side:1-lower,'lowerarm_'+side:lower*(1-hand),'hand_'+side:lower*hand}
@@ -61,40 +58,42 @@ def build(ns):
     verts=[];rings=13;n=48
     for j in range(rings):
         t=j/(rings-1);z=1.075+t*.305
-        rx=.207+.024*math.sin(t*math.pi)-.027*t**4
-        ry=.119+.018*math.sin(t*math.pi)
+        rx=.199+.023*math.sin(t*math.pi)-.010*t**4
+        ry=.115+.014*math.sin(t*math.pi)
         for i in range(n+1):
             angle=.34+(math.tau-.68)*i/n
             # Opening is at negative Y; smooth diagonal tension folds toward side seams.
-            fold=.0028*math.sin(t*17+angle*3)*math.sin(t*math.pi)
-            verts.append(((rx+fold)*math.sin(angle),-(ry+fold)*math.cos(angle),z))
+            fold=.002*math.sin(t*14+angle*2)*math.exp(-((t-.25)/.23)**2)
+            verts.append(((rx+fold)*math.sin(angle),-(ry+fold)*math.copysign(abs(math.cos(angle))**.4,math.cos(angle)),z))
     faces=[(j*(n+1)+i,j*(n+1)+i+1,(j+1)*(n+1)+i+1,(j+1)*(n+1)+i)
            for j in range(rings-1) for i in range(n)]
     jacket=subdiv(mesh('tailored_jacket_shell',verts,faces,'Jacket','chest'))
     mod=jacket.modifiers.new('Cloth thickness','SOLIDIFY');mod.thickness=.009
     bpy.ops.object.modifier_apply(modifier=mod.name)
     weights(jacket,lambda p:{'chest':smoothstep(1.09,1.23,p.z),'spine':1-smoothstep(1.09,1.23,p.z)})
+    garment=[jacket]
     for side,s in [('l',1),('r',-1)]:
-        verts=[];n=28;rings=25
+        verts=[];n=32;rings=37
         for j in range(rings):
             t=j/(rings-1);z=1.393-.505*t
-            x=s*(.214+.158*t**.7);y=-.025*t*t
+            x=s*(.194+.178*t**.72);y=-.025*t*t
             # Flatter sleeve cap and tapered upper arm instead of a balloon shoulder.
-            r=.042+.049*math.sin(min(1,t/.14)*math.pi/2)
-            r*=1-.29*t
+            r=.047+.036*math.sin(min(1,t/.18)*math.pi/2)
+            r*=1-.35*t
+            r+=.004*math.exp(-((t-.68)/.12)**2)
             # Restrained elbow compression creases integrated in the surface.
-            fold=.004*math.sin((z-1.085)*105)*math.exp(-((z-1.085)/.075)**2)
+            fold=.0035*math.sin((z-1.09)*95)*math.exp(-((z-1.09)/.048)**2)
             for i in range(n):
                 a=math.tau*i/n
-                cap_fold=.0022*math.cos(a*3+t*18)*math.exp(-((t-.24)/.15)**2)
+                cap_fold=.002*math.cos(a*2+t*12)*math.exp(-((t-.25)/.13)**2)
                 radius=r+cap_fold+fold*(.4+.6*max(0,-math.sin(a)))
-                verts.append((x+radius*math.cos(a),y+radius*.92*math.sin(a),z))
+                verts.append((x+radius*math.cos(a),y+radius*.84*math.sin(a),z))
         faces=[tuple(range(n-1,-1,-1)),tuple((rings-1)*n+i for i in range(n))]
         faces += [(j*n+i,(j+1)*n+i,(j+1)*n+(i+1)%n,j*n+(i+1)%n) for j in range(rings-1) for i in range(n)]
         sleeve=subdiv(mesh('continuous_sleeve_'+side,verts,faces,'Jacket','upperarm_'+side))
-        weights(sleeve,lambda p:arm_weights(p,side))
+        garment.append(sleeve)
         # Slim, rounded cuff instead of a separate large cone.
-        cuff=ell('tailored_cuff_'+side,(s*.370,-.025,.899),(.068,.063,.023),'Trim','lowerarm_'+side)
+        cuff=ell('tailored_cuff_'+side,(s*.370,-.025,.899),(.057,.049,.020),'Trim','lowerarm_'+side)
         weights(cuff,lambda p:arm_weights(p,side))
         palm=ell('palm_'+side,(s*.407,-.089,.866),(.026,.063,.033),'Skin','hand_'+side)
         # Dense tubes carry smoothly blended weights across each phalanx.
@@ -124,3 +123,83 @@ def build(ns):
         # A discreet seam is a geometric inset, not an extra shoulder joint.
         for j in range(3):
             ell('cuff_button_'+side,(s*.397,-.080,.900+j*.004),(.003,.002,.003),'Steel','lowerarm_'+side)
+
+    # Fuse only the garment surfaces, preserving hands, trim and face geometry.
+    bpy.ops.object.select_all(action='DESELECT')
+    for ob in garment:
+        ob.select_set(True);parts.remove(ob)
+    bpy.context.view_layer.objects.active=jacket;bpy.ops.object.join()
+    jacket=bpy.context.object;jacket.name='tailored_jacket_shell'
+    bpy.ops.object.transform_apply(location=True,rotation=True,scale=True)
+    bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.normals_make_consistent(inside=False);bpy.ops.object.mode_set(mode='OBJECT')
+    mod=jacket.modifiers.new('Unified shoulder and underarm surface','REMESH')
+    mod.mode='VOXEL';mod.voxel_size=.003;mod.use_smooth_shade=True
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+    mod=jacket.modifiers.new('Relax armhole transitions','SMOOTH');mod.factor=.45;mod.iterations=3
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+    # Reduce the fused surface before skinning and expression keys are created.
+    # Keep the dense shape for a bidirectional surface-distance check.
+    from mathutils.bvhtree import BVHTree
+    import json
+    from pathlib import Path
+    original=[v.co.copy() for v in jacket.data.vertices]
+    original_faces=[tuple(f.vertices) for f in jacket.data.polygons]
+    source_tree=BVHTree.FromPolygons(original,original_faces)
+    before=len(original)
+    mod=jacket.modifiers.new('Garment prototype reduction','DECIMATE')
+    mod.decimate_type='COLLAPSE';mod.ratio=.22;mod.use_collapse_triangulate=True
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+    reduced=[v.co.copy() for v in jacket.data.vertices]
+    reduced_tree=BVHTree.FromPolygons(reduced,[tuple(f.vertices) for f in jacket.data.polygons])
+    distances=[source_tree.find_nearest(p)[3] for p in reduced]
+    distances.extend(reduced_tree.find_nearest(p)[3] for p in original)
+    error=max(distances)
+    assert error<.003, f'Garment reduction displaced surface by {error} m'
+    assert len(reduced)<before*.35, 'Insufficient garment reduction'
+    report={'before_vertices':before,'after_vertices':len(reduced),
+            'triangles':len(jacket.data.polygons),'max_vertex_to_surface_distance_m':error,
+            'method':'collapse decimation before analytic skin-weight assignment',
+            'production_retopology':False}
+    (Path(ns['OUT'])/'jacket_mesh_optimization.json').write_text(json.dumps(report,indent=2))
+    print('JACKET MESH REDUCTION',report)
+    parts.append(jacket)
+    def garment_weights(p):
+        side='l' if p.x>=0 else 'r'
+        # Torso core stays with chest; lateral shoulder and underarm share arm motion.
+        arm=smoothstep(.162,.272,abs(p.x))
+        torso=smoothstep(1.09,1.23,p.z)
+        result={'chest':(1-arm)*torso,'spine':(1-arm)*(1-torso)}
+        for name,value in arm_weights(p,side).items():
+            result[name]=result.get(name,0)+arm*value
+        return result
+    weights(jacket,garment_weights)
+    # Reject an unfused armhole before exporting a misleading seamless asset.
+    adjacency=[[] for v in jacket.data.vertices]
+    for e in jacket.data.edges:
+        a,b=e.vertices;adjacency[a].append(b);adjacency[b].append(a)
+    unseen=set(range(len(adjacency)));sizes=[]
+    while unseen:
+        stack=[unseen.pop()];count=0
+        while stack:
+            v=stack.pop();count+=1
+            for other in adjacency[v]:
+                if other in unseen:unseen.remove(other);stack.append(other)
+        sizes.append(count)
+    assert len(sizes)==1, f'Jacket has disconnected surfaces: {sizes}'
+    print('UNIFIED JACKET',len(jacket.data.vertices),'vertices, one connected surface')
+
+    # Fit existing pocket and edge details to the flatter chest surface.
+    for ob in parts:
+        if not ob.name.startswith(('breast_pocket','pocket_','front_seam','jacket_hem')):
+            continue
+        inv=ob.matrix_world.inverted()
+        for v in ob.data.vertices:
+            p=ob.matrix_world@v.co
+            t=max(0,min(1,(p.z-1.075)/.305))
+            rx=.199+.023*math.sin(t*math.pi)-.010*t**4
+            ry=.115+.014*math.sin(t*math.pi)
+            front=-ry*max(.001,1-(min(.995,abs(p.x)/rx))**2)**.2
+            baseline=.1365 if ob.name.startswith(('breast_pocket','pocket_')) else .145
+            p.y+=front+baseline
+            v.co=inv@p
